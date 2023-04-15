@@ -1,0 +1,52 @@
+# Sky YAML file to establish a development VM
+
+name: jupyter
+
+resources:
+  cloud: gcp
+  instance_type: n2d-highmem-8
+  region: us-west1
+  disk_size: 128
+
+file_mounts:
+  /rs2:
+    source: gs://ecker-cemba-rs2/
+    mode: MOUNT
+  /data:
+    source: gs://ecker-rachel-analysis/
+    mode: MOUNT
+  /cemba:
+    source: gs://ecker-hanqing-wmb-us-west1/
+    mode: MOUNT
+  /browser:
+    source: gs://ecker-hanqing-wmb-browser/
+    mode: MOUNT
+  /ref:
+    source: gs://ecker-hanqing-reference/
+    mode: MOUNT
+  /home/hanliu:
+    source: gs://ecker-hanqing-analysis/
+    mode: MOUNT
+
+setup: |
+  if [ -f $HOME/mambaforge/bin/jupyter ]
+  then
+    echo "Skip setup"
+  else
+    sudo apt-get update
+    sudo apt-get install nfs-common -y
+    sudo mkdir /mnt/filestore -p
+    sudo chown nobody:nogroup /mnt/filestore
+    ln -s /mnt/filestore ~/sky_workdir/filestore
+
+    wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh -O $HOME/Mambaforge-Linux-x86_64.sh
+    bash $HOME/Mambaforge-Linux-x86_64.sh -b -p $HOME/mambaforge
+    $HOME/mambaforge/bin/mamba init bash
+  fi
+
+run: |
+  # mamba install -y dash xarray jupyter dash-bootstrap-components
+  
+  sudo mount 10.191.162.202:/filestore /mnt/filestore
+  cd ~/sky_workdir
+  nohup jupyter-lab --LabApp.token='' --no-browser --port 3344 > ~/jupyter.log 2>&1 &
