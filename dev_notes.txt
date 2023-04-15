@@ -1,0 +1,2 @@
+1. Start sky vm:
+sky
