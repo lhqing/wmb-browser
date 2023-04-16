@@ -1,8 +1,9 @@
-from functools import lru_cache
 from typing import Union
 
 import pandas as pd
 import xarray as xr
+
+_RESERVED_KEYS = {"metadata", "coords"}
 
 
 class Dataset:
@@ -19,9 +20,8 @@ class Dataset:
         self._int_id_to_original_id = {v: k for k, v in self._original_id_to_int_id.items()}
 
         self._var_matrices = {}
-        self._var_names = {}
 
-        self._categories = {}
+        self._metadata = {}
 
         self._coords = {}
         return
@@ -44,8 +44,13 @@ class Dataset:
         -------
         None
         """
-        assert name not in self._var_matrices
-        assert var_matrix.dims == (self.obs_dim, var_dim)
+        if name in self._var_matrices:
+            raise ValueError(f"Feature set '{name}' already exists.")
+        if name in _RESERVED_KEYS:
+            raise ValueError(f"Feature set name '{name}' is reserved.")
+
+        if var_matrix.dims != (self.obs_dim, var_dim):
+            raise ValueError(f"Dimensions of feature set '{name}' do not match.")
 
         if dtype is not None and var_matrix.dtype != dtype:
             var_matrix = var_matrix.astype(dtype)
@@ -53,32 +58,50 @@ class Dataset:
         if load:
             var_matrix.load()
 
+        var_matrix = var_matrix.rename({self.obs_dim: "obs", var_dim: "var"})
+
         self._var_matrices[name] = var_matrix
 
         return
 
-    def add_category(self, category: pd.Series):
+    def add_metadata(self, metadata: pd.Series):
         """
-        Add a categorical variable to the dataset.
+        Add a metadata variable to the dataset.
 
         Parameters
         ----------
-        category : pd.Series with index containing the object ids
+        metadata : pd.Series with index containing the object ids
 
         Returns
         -------
         None
         """
-        assert category.name not in self._categories
+        if metadata.name in self._metadata:
+            raise ValueError(f"Category '{metadata.name}' already exists.")
 
-        if category.dtype != "category":
-            category = category.astype("category")
+        if metadata.dtype == "category":
+            metadata = metadata.astype(str).astype("category")
 
-        self._categories[category.name] = category
-
+        self._metadata[metadata.name] = metadata
         return
 
-    def add_coords(self, name: str, coords: xr.DataArray, dtype="float16"):
+    def add_metadata_df(self, metadata: pd.DataFrame) -> None:
+        """
+        Add a metadata dataframe to the dataset.
+
+        Parameters
+        ----------
+        metadata : pd.DataFrame with index containing the object ids
+
+        Returns
+        -------
+        None
+        """
+        for _, data in metadata.iteritems():
+            self.add_metadata(data)
+        return
+
+    def add_coords(self, name: str, coords: pd.DataFrame, dtype="float16"):
         """
         Add coordinates to the dataset.
 
@@ -92,15 +115,9 @@ class Dataset:
         -------
         None
         """
-        assert name not in self._coords
-
-        assert coords.dims[0] == self.obs_dim
-        assert len(coords.dims) == 2
-
         if coords.dtype != dtype:
             coords = coords.astype(dtype)
 
-        coords = coords.to_pandas()
         coords.columns = [f"{name}_{c}" for c in range(coords.shape[1])]
         self._coords[name] = coords
         return
@@ -120,7 +137,6 @@ class Dataset:
         """Get the names of the coordinates."""
         return set(self._coords.keys())
 
-    @lru_cache(maxsize=128)
     def get_values(self, set_name: str, var_name: str) -> pd.Series:
         """
         Get a series of values for a given variable in a given feature set.
@@ -139,11 +155,11 @@ class Dataset:
         except KeyError:
             raise KeyError(f"Feature set '{set_name}' not found.")
         try:
-            _data = _da[var_name]
+            _data = _da.sel(var=var_name).to_pandas()
         except KeyError:
             raise KeyError(f"Variable '{var_name}' not found in feature set '{set_name}'.")
 
-        return _data.to_pandas()
+        return _data
 
     def get_coords(self, name: str) -> pd.DataFrame:
         """

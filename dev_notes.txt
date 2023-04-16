@@ -1,2 +1,7 @@
 1. Start sky vm:
-sky
+sky launch -c browser -y ~/src/wmb-browser/sky-wmb-dev.yaml; sky autostop browser -y -i 720
+ssh -N -f -L localhost:1234:localhost:1234 browser; ssh -N -f -L localhost:3344:localhost:3344 browser
+
+
+TODO: add DMR mCG and ATAC dataset
+TODO: add cell-by-gene mCH, mCG, RNA dataset, chunk by single gene

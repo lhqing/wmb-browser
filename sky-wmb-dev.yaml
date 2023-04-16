@@ -45,8 +45,8 @@ setup: |
   fi
 
 run: |
-  # mamba install -y dash xarray jupyter dash-bootstrap-components
-  
+  # mamba install -y dash xarray jupyter dash-bootstrap-components jupyterlab joblib numba dask zarr
+  # pip install wmb allcools
   sudo mount 10.191.162.202:/filestore /mnt/filestore
   cd ~/sky_workdir
   nohup jupyter-lab --LabApp.token='' --no-browser --port 3344 > ~/jupyter.log 2>&1 &
