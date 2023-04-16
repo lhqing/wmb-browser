@@ -5,10 +5,14 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+LOGO_IMG_URL = (
+    "https://raw.githubusercontent.com/lhqing/wmb-browser/master/"
+    "wmb_browser/assets/dissection_region_img/navbar_icon.gif"
+)
+
 
 def get_header():
     """Add header to the app."""
-    logo_img_url = "https://raw.githubusercontent.com/lhqing/wmb-browser/master/wmb_browser/files/navbar_icon.gif"
     nav = dbc.Row(
         [
             dbc.Nav(
@@ -27,7 +31,7 @@ def get_header():
     navbar = dbc.Navbar(
         [
             html.A(
-                dbc.Row([dbc.Col(html.Img(src=logo_img_url, height="50px"))], align="left", className="g-0"),
+                dbc.Row([dbc.Col(html.Img(src=LOGO_IMG_URL, height="50px"))], align="left", className="g-0"),
                 href=f"/{APP_ROOT_NAME}",
                 className="mx-3",
             ),
