@@ -15,7 +15,7 @@ Whole Mouse Brain Browser
 
 First, create a repository on GitHub with the same name as this project, and then run the following commands:
 
-``` bash
+```bash
 git init -b main
 git add .
 git commit -m "init commit"
@@ -23,7 +23,7 @@ git remote add origin git@github.com:lhqing/wmb-browser.git
 git push -u origin main
 ```
 
-Finally, install the environment and the pre-commit hooks with 
+Finally, install the environment and the pre-commit hooks with
 
 ```bash
 make install
@@ -42,10 +42,10 @@ To enable the code coverage reports, see [here](https://fpgmaas.github.io/cookie
 ## Releasing a new version
 
 - Create an API Token on [Pypi](https://pypi.org/).
-- Add the API Token to your projects secrets with the name `PYPI_TOKEN` by visiting 
-[this page](https://github.com/lhqing/wmb-browser/settings/secrets/actions/new).
-- Create a [new release](https://github.com/lhqing/wmb-browser/releases/new) on Github. 
-Create a new tag in the form ``*.*.*``.
+- Add the API Token to your projects secrets with the name `PYPI_TOKEN` by visiting
+  [this page](https://github.com/lhqing/wmb-browser/settings/secrets/actions/new).
+- Create a [new release](https://github.com/lhqing/wmb-browser/releases/new) on Github.
+  Create a new tag in the form `*.*.*`.
 
 For more details, see [here](https://fpgmaas.github.io/cookiecutter-poetry/features/cicd/#how-to-trigger-a-release).
 
