@@ -97,5 +97,3 @@ skip_empty = true
 [tool.coverage.run]
 branch = true
 source = ["wmb_browser"]
-
-
