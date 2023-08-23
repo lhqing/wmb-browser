@@ -54,6 +54,12 @@ setup: |
     # setup jupyter
     mamba install -y jupyterlab
 
+    # setup github
+    mamba install -y gh
+
+    # setup dash
+    pip install dash-bootstrap-components
+
     # ingest data to higlass with the ingest notebook
     # jupyter nbconvert --to notebook --execute /cemba/higlass/notebooks/ingest_higlass.ipynb
   fi
