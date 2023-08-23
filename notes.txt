@@ -1,0 +1,20 @@
+# deploy docker command
+sudo docker run --detach \
+--publish 80:80 \
+--volume ~/hg-data:/data \
+--volume ~/tmp:/tmp \
+--volume /browser:/browser \
+--volume /cemba:/cemba \
+--name higlass-container \
+-e SITE_URL=VM.IP.ADDRESS.HERE \
+higlass/higlass-docker:latest
+
+# development docker command
+sudo docker run --detach \
+--publish 8989:80 \
+--volume ~/hg-data:/data \
+--volume ~/tmp:/tmp \
+--volume /browser:/browser \
+--volume /cemba:/cemba \
+--name higlass-container \
+higlass/higlass-docker:latest

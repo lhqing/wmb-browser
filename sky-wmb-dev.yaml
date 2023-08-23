@@ -4,49 +4,60 @@ name: jupyter
 
 resources:
   cloud: gcp
-  instance_type: n2d-highmem-8
+  instance_type: n2d-highmem-16
   region: us-west1
   disk_size: 128
 
 file_mounts:
-  /rs2:
-    source: gs://ecker-cemba-rs2/
-    mode: MOUNT
-  /data:
-    source: gs://ecker-rachel-analysis/
-    mode: MOUNT
   /cemba:
-    source: gs://ecker-hanqing-wmb-us-west1/
+    source: gs://hanqing-wmb-data-us-west1/
     mode: MOUNT
   /browser:
-    source: gs://ecker-hanqing-wmb-browser/
+    source: gs://hanqing-wmb-browser/
     mode: MOUNT
   /ref:
-    source: gs://ecker-hanqing-reference/
+    source: gs://hanqing-reference/
     mode: MOUNT
   /home/hanliu:
-    source: gs://ecker-hanqing-analysis/
+    source: gs://hanqing-analysis/
     mode: MOUNT
 
 setup: |
-  if [ -f $HOME/mambaforge/bin/jupyter ]
+  if [ -f $HOME/miniconda3/bin/jupyter ]
   then
     echo "Skip setup"
   else
+    # setup filestore
     sudo apt-get update
     sudo apt-get install nfs-common -y
     sudo mkdir /mnt/filestore -p
     sudo chown nobody:nogroup /mnt/filestore
-    ln -s /mnt/filestore ~/sky_workdir/filestore
+    sudo ln -s /mnt/filestore ~/sky_workdir/filestore
 
-    wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh -O $HOME/Mambaforge-Linux-x86_64.sh
-    bash $HOME/Mambaforge-Linux-x86_64.sh -b -p $HOME/mambaforge
-    $HOME/mambaforge/bin/mamba init bash
+    # setup mamba and channels
+    conda install mamba -y -n base -c conda-forge
+    conda config --add channels defaults
+    conda config --add channels bioconda
+    conda config --add channels conda-forge
+    conda config --set channel_priority strict
+    pip install --upgrade pip
+
+    # setup wmb
+    mamba install -y dash xarray dask zarr
+
+    # setup higlass
+    sudo docker pull higlass/higlass-docker:latest
+    sudo docker run --detach --publish 8989:80 --volume ~/hg-data:/data --volume ~/tmp:/tmp --volume /browser:/browser --volume /cemba:/cemba --name higlass-container higlass/higlass-docker:latest
+    sudo docker exec higlass-container rm -rf /data/media
+    sudo docker exec higlass-container ln -s /browser /data/media
+
+    # setup jupyter
+    mamba install -y jupyterlab
+
+    # ingest data to higlass with the ingest notebook
+    # jupyter nbconvert --to notebook --execute /cemba/higlass/notebooks/ingest_higlass.ipynb
   fi
 
 run: |
-  # mamba install -y dash xarray jupyter dash-bootstrap-components jupyterlab joblib numba dask zarr
-  # pip install wmb allcools
-  sudo mount 10.191.162.202:/filestore /mnt/filestore
-  cd ~/sky_workdir
+  sudo docker start higlass-container
   nohup jupyter-lab --LabApp.token='' --no-browser --port 3344 > ~/jupyter.log 2>&1 &
