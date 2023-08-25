@@ -5,17 +5,23 @@ import joblib
 class Color:
     """Color definitions for the application."""
 
-    def __init__(self, color_file_path):
+    def __init__(self):
+        """Initialize the color definitions."""
+        color_file_path = '/browser/metadata/TotalPaletteDict.lib'
         self._color_dict = joblib.load(color_file_path)
         return
 
-    def get_colors(self, dataset: str, category: str) -> dict:
-        """Get the color for a given dataset and category."""
-        try:
-            return self._color_dict[f"{dataset}.{category}"]
-        except KeyError:
-            raise KeyError(f"Color for '{dataset}.{category}' not found.")
+    @property
+    def palette_names(self):
+        """Get the names of the palettes."""
+        return list(self._color_dict.keys())
 
-    def has_colors(self, dataset, category):
-        """Check if a given dataset and category has colors."""
-        return f"{dataset}.{category}" in self._color_dict
+    def get_colors(self, name: str) -> dict:
+        """Get the color for a given name."""
+        try:
+            return self._color_dict[name]
+        except KeyError:
+            raise KeyError(f"Color for '{name}' not found. Use these names: {self.palette_names}")
+        return
+
+color = Color()

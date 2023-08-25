@@ -2,6 +2,8 @@ from typing import Union
 
 import pandas as pd
 import xarray as xr
+import joblib
+from .genome import mm10
 
 _RESERVED_KEYS = {"metadata", "coords"}
 
@@ -21,7 +23,7 @@ class Dataset:
 
         self._var_matrices = {}
 
-        self._metadata = {}
+        self._metadata = pd.DataFrame(index=self.obs_ids)
 
         self._coords = {}
         return
@@ -61,7 +63,6 @@ class Dataset:
         var_matrix = var_matrix.rename({self.obs_dim: "obs", var_dim: "var"})
 
         self._var_matrices[name] = var_matrix
-
         return
 
     def add_metadata(self, metadata: pd.Series):
@@ -76,7 +77,7 @@ class Dataset:
         -------
         None
         """
-        if metadata.name in self._metadata:
+        if metadata.name in self._metadata.columns:
             raise ValueError(f"Category '{metadata.name}' already exists.")
 
         if metadata.dtype == "category":
@@ -97,8 +98,10 @@ class Dataset:
         -------
         None
         """
-        for _, data in metadata.iteritems():
-            self.add_metadata(data)
+        for col in metadata.columns:
+            if col in self._metadata:
+                raise ValueError(f"Metadata column '{col}' already exists.")
+        self._metadata = pd.concat([self._metadata, metadata], axis=1)
         return
 
     def add_coords(self, name: str, coords: pd.DataFrame, dtype="float16"):
@@ -115,11 +118,10 @@ class Dataset:
         -------
         None
         """
-        if coords.dtype != dtype:
-            coords = coords.astype(dtype)
+        _coords = coords.astype(dtype)
 
-        coords.columns = [f"{name}_{c}" for c in range(coords.shape[1])]
-        self._coords[name] = coords
+        _coords.columns = [f"{name}_{c}" for c in range(_coords.shape[1])]
+        self._coords[name] = _coords
         return
 
     @property
@@ -128,16 +130,16 @@ class Dataset:
         return set(self._var_matrices.keys())
 
     @property
-    def categories(self) -> set:
-        """Get the names of the categorical variables."""
-        return set(self._categories.keys())
-
-    @property
     def coords(self) -> set:
         """Get the names of the coordinates."""
         return set(self._coords.keys())
 
-    def get_values(self, set_name: str, var_name: str) -> pd.Series:
+    @property
+    def metadata_names(self) -> set:
+        """Get the names of the metadata columns."""
+        return set(self._metadata.columns)
+
+    def get_var_values(self, set_name: str, var_name: str) -> pd.Series:
         """
         Get a series of values for a given variable in a given feature set.
 
@@ -178,45 +180,43 @@ class Dataset:
         except KeyError:
             raise KeyError(f"Coordinates '{name}' not found.")
 
-    def get_category(self, name: str) -> pd.Series:
+    def get_metadata(self, name: str) -> pd.Series:
         """
-        Get the category for a given name.
+        Get the metadata for a given name.
 
         Parameters
         ----------
-        name : the name of the category
+        name : the name of the metadata
 
         Returns
         -------
         pd.Series
         """
         try:
-            return self._categories[name]
+            return self._metadata[name].copy()
         except KeyError:
-            raise KeyError(f"Category '{name}' not found.")
+            raise KeyError(f"Metadata '{name}' not found.")
 
-    def get_scatter_data(
+    def get_plot_data(
         self,
         coord: str,
-        hue: str,
-        size: Union[str, None] = None,
-        hue_set_name: Union[str, None] = None,
-        size_set_name: Union[str, None] = None,
+        metadata: Union[str, list] = None,
+        var_dict: dict = None,
         use_obs: pd.Index = None,
         missing_value: str = "drop",
+        sample: int = None,
     ) -> pd.DataFrame:
         """
-        Get the data for scatter plots.
+        Get the tidy data for plots.
 
         Parameters
         ----------
         coord : name of the coordinates
-        hue : name of the hue variable
-        size : name of the size variable
-        hue_set_name : name of the feature set containing the hue variable
-        size_set_name : name of the feature set containing the size variable
+        metadata : name of the metadata columns
+        var_dict : dictionary of feature sets and variables
         use_obs : list of object ids to use
         missing_value : how to handle missing values, either 'drop' or 'raise'
+        sample : number of objects to sample
 
         Returns
         -------
@@ -224,12 +224,22 @@ class Dataset:
         """
         plot_data = self.get_coords(coord)
 
-        _hue = self.get_category(hue) if hue in self.categories else self.get_values(hue_set_name, hue)
-        plot_data["hue"] = _hue
+        if metadata is not None:
+            if isinstance(metadata, str):
+                _metadata = self._metadata[metadata]
+                plot_data[metadata] = _metadata
+            else:
+                for m in metadata:
+                    _metadata = self._metadata[m]
+                    plot_data[m] = _metadata
 
-        if size is not None:
-            _size = self.get_values(size_set_name, size)
-            plot_data["size"] = _size
+        if var_dict is not None:
+            for name, var in var_dict.items():
+                if isinstance(var, str):
+                    plot_data[f"{name}:{var}"] = self.get_var_values(name, var)
+                else:
+                    for _v in var:
+                        plot_data[f"{name}:{_v}"] = self.get_var_values(name, _v)
 
         if use_obs is not None:
             plot_data = plot_data.loc[use_obs].copy()
@@ -239,4 +249,82 @@ class Dataset:
             assert not plot_data.isnull().any().any()
         else:
             raise ValueError(f"Invalid value for missing_value: '{missing_value}'")
+
+        if sample is not None and plot_data.shape[0] > sample:
+            plot_data = plot_data.sample(sample, random_state=0)
         return plot_data
+
+
+class CEMBAsnmCCells(Dataset):
+    def __init__(self) -> None:
+        name = "cemba_snmc_cells"
+        obs_dim = "cell"
+        metadata_path = "/browser/metadata/CEMBA_snmC.cell_metadata.pickle"
+        coords_path = "/browser/metadata/CEMBA_snmC.cell_coords.lib"
+        cell_by_gene_mc_frac_zarr_path = "/cemba/wmb/GeneChunks/CEMBA.snmC/"
+
+        cell_meta = pd.read_pickle(metadata_path)
+
+        super().__init__(name=name, obs_ids=cell_meta.index, obs_dim=obs_dim)
+
+        # add metadata
+        self.add_metadata_df(cell_meta)
+
+        # add coords
+        coords = joblib.load(coords_path)
+        for name, coord_df in coords.items():
+            self.add_coords(name, coord_df)
+
+        # add gene matrices
+        ds = xr.open_zarr(cell_by_gene_mc_frac_zarr_path)
+        ds = ds.rename({"geneslop2k-vm23": "gene"})
+        gene_mch_frac_da = ds["geneslop2k-vm23_da_frac_fc"].sel(mc_type="CHN")
+        gene_mcg_frac_da = ds["geneslop2k-vm23_da_frac_fc"].sel(mc_type="CGN")
+        self.add_var_matrix("gene_mch", gene_mch_frac_da, var_dim="gene")
+        self.add_var_matrix("gene_mcg", gene_mcg_frac_da, var_dim="gene")
+
+    @staticmethod
+    def _to_gene_id(name):
+        if name.startswith("ENSMUSG"):
+            return name
+        else:
+            return mm10.gene_name_to_id(name)
+        
+    @staticmethod
+    def _to_gene_name(gene_id):
+        if gene_id.startswith("ENSMUSG"):
+            return mm10.gene_id_to_name(gene_id)
+        else:
+            return gene_id
+
+    def get_gene_mch_frac(self, gene: str) -> pd.Series:
+        """Get the mCH fraction for a given gene."""
+        gene = self._to_gene_id(gene)
+        return self.get_var_values("gene_mch", gene)
+
+    def get_gene_mcg_frac(self, gene: str) -> pd.Series:
+        """Get the mCG fraction for a given gene."""
+        gene = self._to_gene_id(gene)
+        return self.get_var_values("gene_mcg", gene)
+
+    def get_plot_data(
+        self, coord: str, *args, use_obs: pd.Index = None, missing_value: str = "drop", sample: int = None
+    ) -> pd.DataFrame:
+        metadata = []
+        var_dict = {}
+        for arg in args:
+            if isinstance(arg, str):
+                if arg in self.metadata_names:
+                    metadata = arg
+                else:
+                    dataset, *var = arg.split(":")
+                    if dataset in self.var_sets:
+                        var_dict[dataset] = self._to_gene_id(var[0])
+        if len(metadata) == 0:
+            metadata = None
+        if len(var_dict) == 0:
+            var_dict = None
+        return super().get_plot_data(coord, metadata, var_dict, use_obs, missing_value, sample)
+
+
+cemba = CEMBAsnmCCells()

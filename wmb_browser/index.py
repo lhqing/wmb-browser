@@ -4,6 +4,7 @@ from _app import APP_ROOT_NAME, app, server
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from dynamic_browser import *
 
 LOGO_IMG_URL = (
     "https://raw.githubusercontent.com/lhqing/wmb-browser/master/"
@@ -44,11 +45,10 @@ def get_header():
     return navbar
 
 
-# make sure pycharm do not remove the import line...
+# make sure IDE do not remove the import line...
 # because server need to be imported by wsgi.py from index.py
 # all orders matters here
 type(server)
-
 
 app.layout = html.Div(
     [
@@ -76,8 +76,15 @@ def display_page(pathname, search, total_url):
         raise PreventUpdate
     elif (pathname == f"/{APP_ROOT_NAME}home") or (pathname == f"/{APP_ROOT_NAME}"):
         layout = []  # home_layout
+    elif pathname == f"/{APP_ROOT_NAME}dynamic_browser":
+        
+        layout = create_dynamic_browser_layout()
+    # add layout functions here based on pathname
+    # elif pathname == f"/{APP_ROOT_NAME}app1":
+    #     layout = app1_layout(search_dict)
+    
     else:
-        return "404"
+        layout = None
 
     # final validate, if any parameter does not found, layout is None
     if layout is None:
@@ -88,4 +95,4 @@ def display_page(pathname, search, total_url):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, port="1234")
+    app.run(debug=True, port="1234")
