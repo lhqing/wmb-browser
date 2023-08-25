@@ -4,7 +4,7 @@ from _app import APP_ROOT_NAME, app, server
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from dynamic_browser import *
+from wmb_browser.apps.dynamic_browser import create_dynamic_browser_layout
 
 LOGO_IMG_URL = (
     "https://raw.githubusercontent.com/lhqing/wmb-browser/master/"
