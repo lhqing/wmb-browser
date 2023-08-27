@@ -1,7 +1,7 @@
 """Main app entry point and routing control."""
 import dash_bootstrap_components as dbc
 from _app import APP_ROOT_NAME, app, server
-from dash import dcc, html
+from dash import dcc, html, callback
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from wmb_browser.apps.dynamic_browser import create_dynamic_browser_layout
@@ -63,7 +63,7 @@ app.layout = html.Div(
 )
 
 
-@app.callback(
+@callback(
     Output("page-content", "children"), [Input("url", "pathname")], [State("url", "search"), State("url", "href")]
 )
 def display_page(pathname, search, total_url):

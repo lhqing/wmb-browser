@@ -250,6 +250,8 @@ class Dataset:
         else:
             raise ValueError(f"Invalid value for missing_value: '{missing_value}'")
 
+        total_obs = plot_data.shape[0]
+
         if sample is not None and plot_data.shape[0] > sample:
             plot_data = plot_data.sample(sample, random_state=0)
-        return plot_data
+        return plot_data, total_obs

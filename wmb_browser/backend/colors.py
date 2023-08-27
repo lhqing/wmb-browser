@@ -3,6 +3,8 @@ import joblib
 
 _palette_alias = {
     "cellsubclass": "subclass",
+    'dissection_region': 'cemba_dissection_region',
+    'dissectionregion': 'cemba_dissection_region'
 }
 
 class Color:
@@ -10,6 +12,7 @@ class Color:
 
     def __init__(self):
         """Initialize the color definitions."""
+        self._alias = {k.lower():v for k,v in _palette_alias.items()}
         color_file_path = '/browser/metadata/TotalPaletteDict.lib'
         self._color_dict = joblib.load(color_file_path)
         return
