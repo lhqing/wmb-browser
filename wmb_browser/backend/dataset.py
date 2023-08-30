@@ -16,6 +16,8 @@ class Dataset:
         self.obs_ids = obs_ids
         self.obs_dim = obs_dim
 
+        self.total_obs = obs_ids.size
+
         # create a mapping from the original object ids to the internal ids
         self._obs_ids_int_ids = pd.Index(range(len(obs_ids)))
         self._original_id_to_int_id = {_id: int_id for int_id, _id in enumerate(obs_ids)}
@@ -250,8 +252,6 @@ class Dataset:
         else:
             raise ValueError(f"Invalid value for missing_value: '{missing_value}'")
 
-        total_obs = plot_data.shape[0]
-
         if sample is not None and plot_data.shape[0] > sample:
             plot_data = plot_data.sample(sample, random_state=0)
-        return plot_data, total_obs
+        return plot_data

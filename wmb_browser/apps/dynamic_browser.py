@@ -2,6 +2,7 @@ from dash import Dash, dcc, html, Input, Output, State, MATCH, ALL, Patch, callb
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from wmb_browser.backend import *
+import re
 
 plot_examples = """
 cemba_cell,continuous_scatter,l1_tsne,gene_mch:Gad1 
@@ -67,15 +68,12 @@ def _make_graph_from_string(i, string):
         print(f"Unknown plot type {plot_type} for dataset {dataset}")
 
     try:
-        # print("args:", args)
-        # print("kwargs:", kwargs)
-        # print("plot_func:", plot_func)
-        graph_title, graph, graph_controls = plot_func(i, *args, **kwargs)
+        graph, graph_controls = plot_func(i, *args, **kwargs)
     except Exception as e:
         print(f"Error when plotting {plot_type} for dataset {dataset}")
         print(e)
 
-    return graph_title, graph, graph_controls
+    return graph, graph_controls, plot_type
 
 
 # Callback to add new item to list
@@ -93,18 +91,14 @@ def add_figure(button_clicked, value):
     patched_fig_list = Patch()
 
     def new_figure_item(i, string):
-        graph_title, graph, graph_controls = _make_graph_from_string(i, string)
+        graph, graph_controls, plot_type = _make_graph_from_string(i, string)
 
         if graph is None:
             return None
 
+        plot_title = plot_type.replace("_", " ").capitalize()
         tabs = html.Div(
-            dbc.Tabs(
-                [
-                    dbc.Tab(graph, label=graph_title),
-                    dbc.Tab(graph_controls, label="Graph Control"),
-                ]
-            ),
+            dbc.Tabs([dbc.Tab(graph, label=plot_title), dbc.Tab(graph_controls, label="Control")]),
             className="mt-3 col-4",
         )
         return tabs
@@ -115,6 +109,7 @@ def add_figure(button_clicked, value):
         else:
             tabs = new_figure_item(f"{button_clicked}-{line_idx}", line)
             if tabs is None:
+                print("Error when creating new figure item with string: ", line)
                 # TODO add error message
                 continue
             patched_fig_list.append(tabs)
@@ -122,24 +117,41 @@ def add_figure(button_clicked, value):
 
 
 @callback(
-    Output({"index": MATCH, "type": "scatter-graph"}, "figure"),
-    Input({"index": MATCH, "type": "scatter-update-btn"}, "n_clicks"),
+    Output({"index": MATCH, "type": "continuous_scatter-graph"}, "figure"),
+    Input({"index": MATCH, "type": "continuous_scatter_update-btn"}, "n_clicks"),
     State({"index": MATCH, "type": "color_input"}, "value"),
     State({"index": MATCH, "type": "color_range"}, "value"),
     State({"index": MATCH, "type": "coord_input"}, "value"),
     State({"index": MATCH, "type": "sample_input"}, "value"),
-    State({"index": MATCH, "type": "marker_size_input"}, "value"),
-    State({"index": MATCH, "type": "scatter-graph"}, "figure"),
     prevent_initial_call=True,
 )
-def update_graph(
-    n_clicks,
-    color, color_range, coord, sample, marker_size, fig
-):
-    print("update_graph", n_clicks)
-    
-    
-    return
+def update_continous_scatter_graph(n_clicks, color, color_range, coord, sample):
+    fig = cemba_cell.continuous_scatter_figure(
+        color=color,
+        color_range=color_range,
+        coord=coord,
+        sample=sample,
+        marker_size="auto",
+    )
+    return fig
+
+
+@callback(
+    Output({"index": MATCH, "type": "categorical_scatter-graph"}, "figure"),
+    Input({"index": MATCH, "type": "categorical_scatter_update-btn"}, "n_clicks"),
+    State({"index": MATCH, "type": "color_input"}, "value"),
+    State({"index": MATCH, "type": "coord_input"}, "value"),
+    State({"index": MATCH, "type": "sample_input"}, "value"),
+    prevent_initial_call=True,
+)
+def update_categorical_scatter_graph(n_clicks, color, coord, sample):
+    fig = cemba_cell.categorical_scatter_figure(
+        color=color,
+        coord=coord,
+        sample=sample,
+        marker_size="auto",
+    )
+    return fig
 
 
 def create_dynamic_browser_layout(*args, **kwargs):

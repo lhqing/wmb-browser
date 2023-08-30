@@ -3,17 +3,18 @@ import joblib
 
 _palette_alias = {
     "cellsubclass": "subclass",
-    'dissection_region': 'cemba_dissection_region',
-    'dissectionregion': 'cemba_dissection_region'
+    "dissection_region": "cemba_dissection_region",
+    "dissectionregion": "cemba_dissection_region",
 }
+
 
 class Color:
     """Color definitions for the application."""
 
     def __init__(self):
         """Initialize the color definitions."""
-        self._alias = {k.lower():v for k,v in _palette_alias.items()}
-        color_file_path = '/browser/metadata/TotalPaletteDict.lib'
+        self._alias = {k.lower(): v for k, v in _palette_alias.items()}
+        color_file_path = "/browser/metadata/TotalPaletteDict.lib"
         self._color_dict = joblib.load(color_file_path)
         return
 
@@ -30,6 +31,6 @@ class Color:
             return self._color_dict[name]
         except KeyError:
             raise KeyError(f"Color for '{name}' not found. Use these names: {self.palette_names}")
-        return
+
 
 color_collection = Color()

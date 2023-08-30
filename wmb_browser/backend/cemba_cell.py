@@ -40,7 +40,7 @@ class CEMBAsnmCCells(Dataset):
 
         # plot default
         self._graph_style = {"height": "70vh", "width": "auto"}
-    
+
     @staticmethod
     def _to_gene_id(name):
         if name.startswith("ENSMUSG"):
@@ -86,9 +86,9 @@ class CEMBAsnmCCells(Dataset):
             metadata = None
         if len(var_dict) == 0:
             var_dict = None
-        _df, total_obs = super().get_plot_data(coord, metadata, var_dict, use_obs, missing_value, sample)
+        _df = super().get_plot_data(coord, metadata, var_dict, use_obs, missing_value, sample)
         _df = _df.rename(columns=rename_dict)
-        return _df, total_obs
+        return _df
 
     @staticmethod
     def _common_fig_layout(fig):
@@ -101,11 +101,9 @@ class CEMBAsnmCCells(Dataset):
             paper_bgcolor="white",
         )
 
-    def continuous_scatter(self, index, coord, color, sample=10000):
-        sample = int(sample)
-        plot_data, total_obs = self.get_plot_data(coord, color, sample=sample)
+    def continuous_scatter_figure(self, coord, color, color_range, marker_size="auto", sample=50000):
+        plot_data = self.get_plot_data(coord, color, sample=sample)
 
-        color_range = (0.7, 1.5)
         fig = px.scatter(
             plot_data,
             x=f"{coord}_0",
@@ -115,16 +113,26 @@ class CEMBAsnmCCells(Dataset):
             color_continuous_scale="viridis",
             range_color=color_range,
         )
+        
+        if marker_size == "auto":
+            marker_size = auto_size(plot_data.shape[0])
+        else:
+            marker_size = float(marker_size)
 
-        default_size = auto_size(plot_data.shape[0])
-        fig.update_traces(marker=dict(size=default_size))
+        fig.update_traces(marker=dict(size=marker_size))
         fig.update_layout(coloraxis_colorbar=dict(thickness=10, len=0.2, y=0.5, title=None))
         self._common_fig_layout(fig)
 
-        graph_title = color.replace(":", " ")
+        return fig
+
+    def continuous_scatter(self, index, coord, color, marker_size="auto", sample=50000):
+        sample = int(sample)
+        color_range = (0.7, 1.5)
+
+        fig = self.continuous_scatter_figure(coord, color, color_range, marker_size=marker_size, sample=sample)
 
         graph = dcc.Graph(
-            id={"index": index, "type": "scatter-graph"},
+            id={"index": index, "type": "continuous_scatter-graph"},
             figure=fig,
             style=self._graph_style,
         )
@@ -135,15 +143,12 @@ class CEMBAsnmCCells(Dataset):
             coord=coord,
             color=color,
             sample=sample,
-            marker_size=default_size,
-            max_samples=total_obs,
             color_range=color_range,
         )
-        return graph_title, graph, graph_control
+        return graph, graph_control
 
-    def categorical_scatter(self, index, coord, color, sample=10000):
-        sample = int(sample)
-        plot_data, total_obs = self.get_plot_data(coord, color, sample=sample)
+    def categorical_scatter_figure(self, coord, color, marker_size="auto", sample=50000):
+        plot_data = self.get_plot_data(coord, color, sample=sample)
 
         plot_data[color] = plot_data[color].astype(str)
         palette = color_collection.get_colors(color)
@@ -157,14 +162,22 @@ class CEMBAsnmCCells(Dataset):
             color_discrete_map=palette,
         )
 
-        default_size = auto_size(plot_data.shape[0])
-        fig.update_traces(marker=dict(size=default_size), showlegend=False)
-        self._common_fig_layout(fig)
+        if marker_size == "auto":
+            marker_size = auto_size(plot_data.shape[0])
+        else:
+            marker_size = float(marker_size)
 
-        graph_title = color
+        fig.update_traces(marker=dict(size=marker_size), showlegend=False)
+        self._common_fig_layout(fig)
+        return fig
+
+    def categorical_scatter(self, index, coord, color, sample=50000):
+        sample = int(sample)
+
+        fig = self.categorical_scatter_figure(coord, color, sample=sample)
 
         graph = dcc.Graph(
-            id={"index": index, "type": "scatter-graph"},
+            id={"index": index, "type": "categorical_scatter-graph"},
             figure=fig,
             style=self._graph_style,
         )
@@ -175,12 +188,19 @@ class CEMBAsnmCCells(Dataset):
             coord=coord,
             color=color,
             sample=sample,
-            marker_size=default_size,
-            max_samples=total_obs,
         )
-        return graph_title, graph, graph_control
+        return graph, graph_control
 
-    def _scatter_control(self, index, scatter_type, coord, color, marker_size, sample, max_samples, color_range=None, max_color_range=None):
+    def _scatter_control(
+        self,
+        index,
+        scatter_type,
+        coord,
+        color,
+        sample,
+        color_range=None,
+        max_color_range=None,
+    ):
         # color control
         color_control = dbc.Row(
             [
@@ -201,12 +221,12 @@ class CEMBAsnmCCells(Dataset):
         if scatter_type.startswith("continuous"):
             if color_range is None:
                 raise ValueError("color_range must be provided for continuous scatter")
-            
+
             if max_color_range is not None:
                 cmin, cmax = max_color_range
             else:
                 cmin, cmax = (min(0, color_range[0]), max(3, color_range[1]))
-            
+
             range_slider = dbc.Row(
                 [
                     dbc.Label("Color Range", width="auto"),
@@ -238,25 +258,6 @@ class CEMBAsnmCCells(Dataset):
             className="g-2 mb-3",
         )
 
-        # marker size control
-        marker_size_control = dbc.Row(
-            [
-                dbc.Label("Scatter marker size", width="auto"),
-                dbc.Col(
-                    dbc.Input(
-                        type="number",
-                        min=0,
-                        max=10,
-                        step=0.5,
-                        value=marker_size,
-                        id={"index": index, "type": "marker_size_input"},
-                    ),
-                    className="me-3",
-                ),
-            ],
-            className="g-2 mb-3",
-        )
-
         # sample control
         sample_control = dbc.Row(
             [
@@ -265,7 +266,7 @@ class CEMBAsnmCCells(Dataset):
                     dbc.Input(
                         type="number",
                         min=0,
-                        max=max_samples,
+                        max=self.total_obs,
                         step=5000,
                         value=sample,
                         id={"index": index, "type": "sample_input"},
@@ -277,9 +278,19 @@ class CEMBAsnmCCells(Dataset):
         )
 
         # final update button
-        update_button = dbc.Button("Update", id={"index": index, "type": "scatter-update-btn"}, outline=True, color="primary", n_clicks=0)
+        if scatter_type.startswith("continuous"):
+            btn_type = "continuous_scatter_update-btn"
+        else:
+            btn_type = "categorical_scatter_update-btn"
+        update_button = dbc.Button(
+            "Update",
+            id={"index": index, "type": btn_type},
+            outline=True,
+            color="primary",
+            n_clicks=0,
+        )
 
-        form = dbc.Form([color_control, coord_control, marker_size_control, sample_control, update_button])
+        form = dbc.Form([color_control, coord_control, sample_control, update_button])
         return form
 
 
