@@ -2,7 +2,7 @@ from typing import Union
 
 import pandas as pd
 import xarray as xr
-from .genome import mm10
+
 
 _RESERVED_KEYS = {"metadata", "coords"}
 

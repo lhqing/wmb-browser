@@ -1,4 +1,5 @@
-from dash import Dash, dcc, html, Input, Output, State, MATCH, ALL, Patch, callback
+from dash import (ALL, MATCH, Dash, Input, Output, Patch, State, callback, dcc,
+                  html)
 
 app = Dash(__name__)
 
@@ -42,7 +43,7 @@ def add_item(button_clicked, value):
         )
 
     patched_list.append(new_checklist_item(button_clicked))
-    patched_list.append(new_checklist_item(button_clicked+100))
+    patched_list.append(new_checklist_item(button_clicked + 100))
     return patched_list, ""
 
 
@@ -84,9 +85,7 @@ def delete_items(n_clicks, state):
 
 
 # Callback to update totals
-@callback(
-    Output("totals-div", "children"), Input({"index": ALL, "type": "done"}, "value")
-)
+@callback(Output("totals-div", "children"), Input({"index": ALL, "type": "done"}, "value"))
 def show_totals(done):
     count_all = len(done)
     count_done = len([d for d in done if d])

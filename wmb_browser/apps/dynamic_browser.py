@@ -1,12 +1,13 @@
-from dash import Dash, dcc, html, Input, Output, State, MATCH, ALL, Patch, callback
-from dash.exceptions import PreventUpdate
+
 import dash_bootstrap_components as dbc
+from dash import (MATCH, Input, Output, Patch, State, callback, html)
+from dash.exceptions import PreventUpdate
+
 from wmb_browser.backend import *
-import re
 
 plot_examples = """
-cemba_cell,continuous_scatter,l1_tsne,gene_mch:Gad1 
-cemba_cell,categorical_scatter,l1_tsne,CellSubClass 
+cemba_cell,continuous_scatter,l1_tsne,gene_mch:Gad1
+cemba_cell,categorical_scatter,l1_tsne,CellSubClass
 cemba_cell,categorical_scatter,l1_tsne,DissectionRegion
 """
 
@@ -48,15 +49,20 @@ def _string_to_args_and_kwargs(string):
     return dataset, plot_type, args, kwargs
 
 
+def _chatgpt_string_to_args_and_kwargs(string):
+    dataset, plot_type, kwargs = gpt_function_call.parse_user_input(string)
+    return dataset, plot_type, [], kwargs
+
+
 def _make_graph_from_string(i, string):
-    graph_title = ""
     graph = None
     graph_controls = None
 
     try:
         dataset, plot_type, args, kwargs = _string_to_args_and_kwargs(string)
     except Exception as e:
-        print(f"Error when parsing string to args and kwargs: \n{string}")
+        print(f"Error when parsing string to args and kwargs: \n{string}. Using chatgpt instead.")
+        dataset, plot_type, args, kwargs = _chatgpt_string_to_args_and_kwargs(string)
         print(e)
 
     dataset_cls = globals().get(dataset, None)

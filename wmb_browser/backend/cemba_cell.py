@@ -1,14 +1,16 @@
-from .dataset import Dataset
+from typing import Tuple, Union
+
+import dash_bootstrap_components as dbc
+import joblib
 import pandas as pd
 import xarray as xr
-import joblib
-from .genome import mm10
-from plotly import express as px
-from .utilities import *
-from .colors import color_collection
 from dash import dcc, html
-import dash_bootstrap_components as dbc
-from typing import Union, List, Tuple, Dict, Optional
+from plotly import express as px
+
+from .colors import color_collection
+from .dataset import Dataset
+from .genome import mm10
+from .utilities import *
 
 
 class CEMBAsnmCCells(Dataset):

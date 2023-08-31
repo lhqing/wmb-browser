@@ -1,10 +1,12 @@
 import re
-import pandas as pd
-import numpy as np
-from functools import partial
 from collections import defaultdict
+from functools import partial
+
 import higlass
+import numpy as np
+import pandas as pd
 from higlass.api import display, gather_plugin_urls
+
 from .colors import color_collection
 
 TRACK_TABLE_PATH = "/browser/metadata/HiglassTracks.csv.gz"
