@@ -60,7 +60,8 @@ def _make_graph_from_string(i, string):
     try:
         dataset, plot_type, args, kwargs = _string_to_args_and_kwargs(string)
     except Exception as e:
-        print(f"Error when parsing string to args and kwargs: \n{string}")
+        print(f"Error when parsing string to args and kwargs: \n{string}. Using chatgpt instead.")
+        dataset, plot_type, args, kwargs = _chatgpt_string_to_args_and_kwargs(string)
         print(e)
 
     dataset_cls = globals().get(dataset, None)
