@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+import numpy as np
 from functools import partial
 from collections import defaultdict
 import higlass
@@ -9,8 +10,8 @@ from .colors import color_collection
 track_table = pd.read_csv("/browser/metadata/HiglassTracks.csv.gz", index_col=0)
 chrom_sizes = pd.read_csv("/browser/genome/mm10.main.chrom.sizes", index_col=0, sep="\t", header=None).squeeze()
 
-modality_1d = ["ATAC CPM", "mCH Frac", "mCG Frac", "Domain Boundary", "Compartment Score"]
-modality_2d = ["Impute 100K", "Impute 10K", "Raw 100K"]
+all_modality_1d = ["ATAC CPM", "mCH Frac", "mCG Frac", "Domain Boundary", "Compartment Score"]
+all_modality_2d = ["Impute 100K", "Impute 10K", "Raw 100K"]
 
 subclass_palette = color_collection.get_colors("subclass")
 
@@ -55,12 +56,10 @@ def _auto_view_width(ncts):
     return view_width
 
 
-def _add_genome_annot_tracks(all_tracks):
-    _t = genome_tileset["mm10_chrom_size"].track("chromosome-labels", height=25)
-    all_tracks["top"].append(_t)
-    _t = genome_tileset["mm10_gene_annot"].track("gene-annotations", height=100)
-    all_tracks["top"].append(_t)
-    return all_tracks
+def _get_genome_annot_tracks():
+    chrom_size = genome_tileset["mm10_chrom_size"].track("chromosome-labels", height=25)
+    gene = genome_tileset["mm10_gene_annot"].track("gene-annotations", height=100)
+    return [chrom_size, gene]
 
 
 def _default_track_options(track_option_dict):
@@ -192,7 +191,8 @@ def _get_cell_type_2d_view(
 
     # top annot
     if add_genome_track:
-        all_tracks = _add_genome_annot_tracks(all_tracks)
+        _genome_tracks = _get_genome_annot_tracks()
+        all_tracks["top"].extend(_genome_tracks)
 
     # other 1d modalities
     if modality_1d is None:
@@ -218,6 +218,8 @@ def multi_cell_type_2d_viewconf(
     add_genome_track=True,
     height_1d=25,
     height_2d=500,
+    region1=None,
+    region2=None,
     view_width="auto",
 ):
     if view_width == "auto":
@@ -237,6 +239,14 @@ def multi_cell_type_2d_viewconf(
                 view_width=view_width,
             )
         )
+
+    # set initial domain
+    for v in views:
+        if region2 is None:
+            region2 = region1
+        if region1 is not None:
+            v.domain(x=_region_to_global_coord(region1), inplace=True)
+            v.domain(y=_region_to_global_coord(region2), inplace=True)
 
     if len(cell_types) > 1:
         locks = []
@@ -280,7 +290,8 @@ def _get_cell_types_1d_view(
     all_tracks = defaultdict(list)
 
     if add_genome_track:
-        all_tracks = _add_genome_annot_tracks(all_tracks)
+        _genome_tracks = _get_genome_annot_tracks()
+        all_tracks["top"].extend(_genome_tracks)
 
     track_option_dict = _default_track_options(track_option_dict)
 
@@ -347,7 +358,125 @@ def multi_cell_type_1d_viewconf(
     return view.viewconf()
 
 
-def render_viewconf_to_html(viewconf, server, region1=None, region2=None):
+def two_cell_type_diff_viewconf(
+    cell_type_1,
+    cell_type_2,
+    server,
+    modality_2d="Impute 10K",
+    modality_1d=("ATAC CPM", "mCH Frac", "mCG Frac"),
+    height_1d=25,
+    height_2d=500,
+    pos_1d="top",
+):
+    # center tracks
+    center1 = get_ct_tileset(ct_or_name=cell_type_1, server=server, track_type=modality_2d).track(
+        "heatmap", height=height_2d
+    )
+    center2 = get_ct_tileset(ct_or_name=cell_type_2, server=server, track_type=modality_2d).track(
+        "heatmap", height=height_2d
+    )
+    center3 = higlass.divide(center1, center2).opts(
+        colorRange=["blue", "white", "red"],
+        valueScaleMin=0.1,
+        valueScaleMax=10,
+    )
+    center3.options["name"] = f"{modality_2d} (left / right) - log scale"
+
+    # add genome track
+    genome_tracks = [(t, "top") for t in _get_genome_annot_tracks()]
+
+    # 1d tracks
+    track_1_list = [(center1, "center")] + genome_tracks
+    track_2_list = [(center2, "center")] + genome_tracks
+    track_3_list = [(center3, "center")] + genome_tracks
+    for _m in modality_1d:
+        t1 = get_ct_tileset(ct_or_name=cell_type_1, server=server, track_type=_m).track("bar", height=height_1d)
+        track_1_list.append((t1, pos_1d))
+        t2 = get_ct_tileset(ct_or_name=cell_type_2, server=server, track_type=_m).track("bar", height=height_1d)
+        track_2_list.append((t2, pos_1d))
+        t3 = higlass.divide(t1, t2).opts(valueScaleMin=0.1, valueScaleMax=10)
+        t3.type = "divergent-bar"
+        t3.options["valueScaling"] = "log"
+        t3.options["name"] = f"{_m} (left / right) - log scale"
+        track_3_list.append((t3, pos_1d))
+
+    # views
+    v1 = higlass.view(*track_1_list, width=4)
+    v2 = higlass.view(*track_2_list, width=4)
+    v3 = higlass.view(*track_3_list, width=4)
+
+    locks = []
+
+    # lock zoom & location
+    lock = higlass.lock(v1, v2, v3)
+    locks.append(lock)
+
+    # Lock value scale
+    pos_attrs = ["center", "top", "bottom", "left", "right"]
+    for pos in pos_attrs:
+        v1_tracks = getattr(v1.tracks, pos)
+        if v1_tracks is None:
+            continue
+        v2_tracks = getattr(v2.tracks, pos)
+        for v1_track, v2_track in zip(v1_tracks, v2_tracks):
+            lock = higlass.lock((v1, v1_track), (v2, v2_track))
+            locks.append(lock)
+
+    # view locks
+    viewconf = (v1 | v3 | v2).locks(*locks)
+    return viewconf
+
+
+def loop_zoom_in_viewconf(
+    cell_type,
+    server,
+    region1,
+    region2,
+    modality_2d="Impute 10K",
+    modality_1d=("ATAC CPM", "mCH Frac", "mCG Frac"),
+    height_1d=25,
+    height_2d=500,
+):
+    domain_x = _region_to_global_coord(region1)
+    domain_y = _region_to_global_coord(region2)
+
+    coord_min = np.min([domain_x, domain_y])
+    coord_max = np.max([domain_x, domain_y])
+    v0_x = v0_y = (coord_min, coord_max)
+
+    center_track = get_ct_tileset(cell_type, server, modality_2d).track("heatmap", height=height_2d)
+
+    # add genome track
+    genome_tracks_top = [(t, "top") for t in _get_genome_annot_tracks()]
+    genome_tracks_left = [(t, "left") for t in _get_genome_annot_tracks()]
+    genome_tracks_right = [(t, "right") for t in _get_genome_annot_tracks()]
+    left_track_list = [(center_track, "center")] + genome_tracks_top + genome_tracks_left  # global view
+    right_track_list = [
+        (center_track, "center")
+    ] + genome_tracks_top  # zoom in view, add genome tracks in the end so its on the outside
+
+    for _m in modality_1d:
+        _t = get_ct_tileset(cell_type, server, _m).track("bar", height=height_1d)
+        left_track_list.append((_t, "top"))
+        right_track_list.append((_t, "top"))
+
+        # has to create a new track when plot in the same view
+        _t = get_ct_tileset(cell_type, server, _m).track("bar", height=height_1d)
+        left_track_list.append((_t, "left"))
+        _t = get_ct_tileset(cell_type, server, _m).track("bar", height=height_1d)
+        right_track_list.append((_t, "right"))
+
+    # add genome tracks in the end so its on the outside
+    right_track_list += genome_tracks_right[::-1]
+
+    v0 = higlass.view(*left_track_list, width=6).domain(x=v0_x, y=v0_y)
+    v1 = higlass.view(*right_track_list, width=6).domain(x=domain_x, y=domain_y)
+
+    viewconf = v0.project(v1, "center") | v1
+    return viewconf
+
+
+def render_viewconf_to_html(viewconf, server):
     """
     Render a viewconf to html
 
@@ -355,10 +484,6 @@ def render_viewconf_to_html(viewconf, server, region1=None, region2=None):
     ----------
     viewconf : higlass.View or higlass.Viewconf
         Higlass view or viewconf
-    region1 : str, optional
-        Zoom to region 1 (e.g. chr1:1000-2000) in the x axis, by default None
-    region2 : str, optional
-        Zoom to region 2 (e.g. chr1:1000-2000) in the y axis, by default None
     """
     if isinstance(viewconf, higlass.api.View):
         viewconf = viewconf.viewconf()
@@ -366,15 +491,6 @@ def render_viewconf_to_html(viewconf, server, region1=None, region2=None):
     view_dict = viewconf.dict()
     view_dict["trackSourceServers"] = [server, "http://higlass.io/api/v1"]
     for _v in view_dict["views"]:
-        # set view point
-        if region1 is not None:
-            _xs, _xe = _region_to_global_coord(region1)
-            _v["initialXDomain"] = [_xs, _xe]
-            if region2 is None:
-                region2 = region1
-            _ys, _ye = _region_to_global_coord(region2)
-            _v["initialYDomain"] = [_ys, _ye]
-
         # toggle position search box, change is inplace
         _v["genomePositionSearchBoxVisible"] = True
         _v["genomePositionSearchBox"] = {

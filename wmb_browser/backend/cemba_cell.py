@@ -8,6 +8,7 @@ from .utilities import *
 from .colors import color_collection
 from dash import dcc, html
 import dash_bootstrap_components as dbc
+from typing import Union, List, Tuple, Dict, Optional
 
 
 class CEMBAsnmCCells(Dataset):
@@ -113,7 +114,7 @@ class CEMBAsnmCCells(Dataset):
             color_continuous_scale="viridis",
             range_color=color_range,
         )
-        
+
         if marker_size == "auto":
             marker_size = auto_size(plot_data.shape[0])
         else:
@@ -125,11 +126,32 @@ class CEMBAsnmCCells(Dataset):
 
         return fig
 
-    def continuous_scatter(self, index, coord, color, marker_size="auto", sample=50000):
+    def continuous_scatter(self, index, coord, color, sample=50000):
+        """
+        Making a scatter plot color by an continuous variable with pre-computed coordinates.
+        
+        Parameters
+        ----------
+        index
+            The internal React component index of the graph. This is created automatically by the callback function, not needed to be specified by the user.
+        coord
+            The name of the coordinates to be used for the scatter plot.
+        color
+            The name of the continuous variable to be used for coloring the scatter plot.
+        sample
+            The number of cells to be sampled for plotting. If set to None, all cells will be used.
+
+        Returns
+        -------
+        dcc.Graph
+            The scatter plot graph.
+        dbc.Form
+            The control panel for the scatter plot.
+        """
         sample = int(sample)
         color_range = (0.7, 1.5)
 
-        fig = self.continuous_scatter_figure(coord, color, color_range, marker_size=marker_size, sample=sample)
+        fig = self.continuous_scatter_figure(coord, color, color_range, sample=sample)
 
         graph = dcc.Graph(
             id={"index": index, "type": "continuous_scatter-graph"},
@@ -171,7 +193,30 @@ class CEMBAsnmCCells(Dataset):
         self._common_fig_layout(fig)
         return fig
 
-    def categorical_scatter(self, index, coord, color, sample=50000):
+    def categorical_scatter(
+        self, index: Union(int, str), coord: str, color: str, sample: int = 50000
+    ) -> Tuple[dcc.Graph, dbc.Form]:
+        """
+        Making a scatter plot color by an categorical variable with pre-computed coordinates.
+
+        Parameters
+        ----------
+        index
+            The internal React component index of the graph. This is created automatically by the callback function, not needed to be specified by the user.
+        coord
+            The name of the coordinates to be used for the scatter plot.
+        color
+            The name of the categorical variable to be used for coloring the scatter plot.
+        sample
+            The number of cells to be sampled for plotting. If set to None, all cells will be used.
+
+        Returns
+        -------
+        dcc.Graph
+            The scatter plot graph.
+        dbc.Form
+            The control panel for the scatter plot.
+        """
         sample = int(sample)
 
         fig = self.categorical_scatter_figure(coord, color, sample=sample)

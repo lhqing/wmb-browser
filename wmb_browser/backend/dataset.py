@@ -2,7 +2,6 @@ from typing import Union
 
 import pandas as pd
 import xarray as xr
-import joblib
 from .genome import mm10
 
 _RESERVED_KEYS = {"metadata", "coords"}

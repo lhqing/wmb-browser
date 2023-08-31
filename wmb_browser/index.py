@@ -77,12 +77,11 @@ def display_page(pathname, search, total_url):
     elif (pathname == f"/{APP_ROOT_NAME}home") or (pathname == f"/{APP_ROOT_NAME}"):
         layout = []  # home_layout
     elif pathname == f"/{APP_ROOT_NAME}dynamic_browser":
-        
         layout = create_dynamic_browser_layout()
     # add layout functions here based on pathname
     # elif pathname == f"/{APP_ROOT_NAME}app1":
     #     layout = app1_layout(search_dict)
-    
+
     else:
         layout = None
 
