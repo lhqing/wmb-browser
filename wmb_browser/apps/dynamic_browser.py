@@ -47,6 +47,10 @@ def _string_to_args_and_kwargs(string):
     dataset, plot_type, *args = args
     return dataset, plot_type, args, kwargs
 
+def _chatgpt_string_to_args_and_kwargs(string):
+    dataset, plot_type, kwargs = gpt_function_call.parse_user_input(string)
+    return dataset, plot_type, [], kwargs
+
 
 def _make_graph_from_string(i, string):
     graph_title = ""
