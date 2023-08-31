@@ -126,10 +126,12 @@ class CEMBAsnmCCells(Dataset):
 
         return fig
 
-    def continuous_scatter(self, index, coord, color, sample=50000):
+    def continuous_scatter(
+        self, index: Union[str, int], coord: str, color: str, sample: int = 50000
+    ) -> Tuple[dcc.Graph, dbc.Form]:
         """
         Making a scatter plot color by an continuous variable with pre-computed coordinates.
-        
+
         Parameters
         ----------
         index
@@ -194,7 +196,7 @@ class CEMBAsnmCCells(Dataset):
         return fig
 
     def categorical_scatter(
-        self, index: Union(int, str), coord: str, color: str, sample: int = 50000
+        self, index: Union[int, str], coord: str, color: str, sample: int = 50000
     ) -> Tuple[dcc.Graph, dbc.Form]:
         """
         Making a scatter plot color by an categorical variable with pre-computed coordinates.
