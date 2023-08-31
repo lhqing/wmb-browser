@@ -1,11 +1,14 @@
-import openai
 import json
 from typing import Tuple
+
+import openai
 
 FUNCTIONS = [
     {
         "name": "categorical_or_continuous_scatter",
-        "description": "Making a scatter plot color by an categorical or continous variable with pre-computed coordinates.",
+        "description": (
+            "Making a scatter plot color by an categorical or continous variable with pre-computed coordinates."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
@@ -20,13 +23,22 @@ FUNCTIONS = [
                     "enum": ["l1_tsne", "l1_umap", "mr_tsne", "mr_umap"],
                 },
                 "color": {
-                    "type": "string", 
-                    "description": "The name of the categorical or continuous variable to be used for coloring the scatter plot. The categorical variable can be a cell annotation, such as CellGroup, CEMBARegion, etc, and the continuous variable is a gene, such as gene_mch:Gad1, gene_mcg:Gad1, gene_mcg:Cux1, gene_mcg:Cux1, etc, which starts with 'gene_' and the gene group, such as FinalmCReads, InputReads, Slice, mCCCFrac, mCGFrac, etc, followed by a gene name, such as Gad1, Cux1, etc."
+                    "type": "string",
+                    "description": (
+                        "The name of the categorical or continuous variable to be used for coloring the scatter plot."
+                        " The categorical variable can be a cell annotation, such as CellGroup, CEMBARegion, etc, and"
+                        " the continuous variable is a gene, such as gene_mch:Gad1, gene_mcg:Gad1, gene_mcg:Cux1,"
+                        " gene_mcg:Cux1, etc, which starts with 'gene_' and the gene group, such as FinalmCReads,"
+                        " InputReads, Slice, mCCCFrac, mCGFrac, etc, followed by a gene name, such as Gad1, Cux1, etc."
+                    ),
                 },
                 "sample": {
                     "type": "integer",
-                    "description": "The number of cells to be sampled for the scatter plot. If set to None, all cells will be used.",
-                }
+                    "description": (
+                        "The number of cells to be sampled for the scatter plot. If set to None, all cells will be"
+                        " used."
+                    ),
+                },
             },
             "required": ["coord", "color"],
         },
@@ -54,4 +66,4 @@ def parse_user_input(user_input: str) -> Tuple[str, str, dict]:
         # function_name = response_message["function_call"]["name"]
         function_args = json.loads(response_message["function_call"]["arguments"])
         dataset = function_args.pop("dataset")
-        return dataset, 'scatter', function_args
+        return dataset, "scatter", function_args

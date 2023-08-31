@@ -1,9 +1,10 @@
 """Main app entry point and routing control."""
 import dash_bootstrap_components as dbc
 from _app import APP_ROOT_NAME, app, server
-from dash import dcc, html, callback
+from dash import callback, dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+
 from wmb_browser.apps.dynamic_browser import create_dynamic_browser_layout
 
 LOGO_IMG_URL = (

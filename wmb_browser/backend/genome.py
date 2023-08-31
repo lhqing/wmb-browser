@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
-import xarray as xr
 
 ENCODE_BLACKLIST_PATH = "/ref/blacklist/mm10-blacklist.v2.bed.gz"
 GENCODE_MM10_vm23 = "/ref/mm10/gencode/biccn/modified_gencode.vM23.primary_assembly.annotation.gene.flat.tsv.gz"
-MM10_TF_GENE_TABLE_PATH = '/ref/SCENIC/allTFs_mm.gene_info.csv'
+MM10_TF_GENE_TABLE_PATH = "/ref/SCENIC/allTFs_mm.gene_info.csv"
 MM10_MAIN_CHROM_SIZES_PATH = "/ref/mm10/mm10.main.chrom.sizes"
 
+
 class MM10GenomeRef:
-    def __init__(self, annot_version='GENCODE_vm23'):
+    def __init__(self, annot_version="GENCODE_vm23"):
         self.ENCODE_BLACKLIST_PATH = ENCODE_BLACKLIST_PATH
         self.GENCODE_MM10_vm23 = GENCODE_MM10_vm23
         self.TF_GENE_TABLE_PATH = MM10_TF_GENE_TABLE_PATH
@@ -22,21 +22,21 @@ class MM10GenomeRef:
         self._get_gene_id_name_dict(annot_version=annot_version)
         return
 
-    def get_gene_metadata(self, annot_version='GENCODE_vm23'):
-        if annot_version == 'GENCODE_vm22':
-            gene_meta = pd.read_csv(self.GENCODE_MM10_vm22, sep='\t', index_col='gene_id')
-        elif annot_version == 'GENCODE_vm23':
-            gene_meta = pd.read_csv(self.GENCODE_MM10_vm23, sep='\t', index_col='gene_id')
+    def get_gene_metadata(self, annot_version="GENCODE_vm23"):
+        if annot_version == "GENCODE_vm22":
+            gene_meta = pd.read_csv(self.GENCODE_MM10_vm22, sep="\t", index_col="gene_id")
+        elif annot_version == "GENCODE_vm23":
+            gene_meta = pd.read_csv(self.GENCODE_MM10_vm23, sep="\t", index_col="gene_id")
         else:
             raise NotImplementedError
         return gene_meta
 
-    def _get_gene_id_name_dict(self, annot_version='GENCODE_vm23'):
-        self._gene_id_to_name = self.get_gene_metadata(annot_version)['gene_name'].to_dict()
+    def _get_gene_id_name_dict(self, annot_version="GENCODE_vm23"):
+        self._gene_id_to_name = self.get_gene_metadata(annot_version)["gene_name"].to_dict()
 
         self._gene_name_to_id = {v: k for k, v in self._gene_id_to_name.items()}
-        self._gene_id_base_to_name = {k.split('.')[0]: v for k, v in self._gene_id_to_name.items()}
-        self._gene_id_base_to_id = {k.split('.')[0]: k for k in self._gene_id_to_name.keys()}
+        self._gene_id_base_to_name = {k.split(".")[0]: v for k, v in self._gene_id_to_name.items()}
+        self._gene_id_base_to_id = {k.split(".")[0]: k for k in self._gene_id_to_name.keys()}
         self._gene_name_to_id_base = {v: k for k, v in self._gene_id_base_to_name.items()}
         return
 
@@ -85,13 +85,13 @@ class MM10GenomeRef:
         return self._tf_gene_table
 
     def get_tf_gene_ids(self):
-        return pd.Index(self.get_tf_gene_table()['gene_id'].unique())
+        return pd.Index(self.get_tf_gene_table()["gene_id"].unique())
 
     def get_tf_gene_names(self):
-        return pd.Index(self.get_tf_gene_table()['gene_name'].unique())
+        return pd.Index(self.get_tf_gene_table()["gene_name"].unique())
 
     def get_tf_motif_table(self):
-        df = pd.read_csv(self.CISTARGET_MGI_MOTIF_TF_TABLE_PATH, sep='\t')
+        df = pd.read_csv(self.CISTARGET_MGI_MOTIF_TF_TABLE_PATH, sep="\t")
         return df
 
 
