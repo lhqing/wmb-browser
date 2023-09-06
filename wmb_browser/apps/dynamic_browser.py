@@ -1,6 +1,5 @@
-
 import dash_bootstrap_components as dbc
-from dash import (MATCH, Input, Output, Patch, State, callback, html)
+from dash import MATCH, Input, Output, Patch, State, callback, html
 from dash.exceptions import PreventUpdate
 
 from wmb_browser.backend import *
@@ -57,6 +56,7 @@ def _chatgpt_string_to_args_and_kwargs(string):
 def _make_graph_from_string(i, string):
     graph = None
     graph_controls = None
+    tab_width = 4
 
     try:
         dataset, plot_type, args, kwargs = _string_to_args_and_kwargs(string)
@@ -65,21 +65,33 @@ def _make_graph_from_string(i, string):
         dataset, plot_type, args, kwargs = _chatgpt_string_to_args_and_kwargs(string)
         print(e)
 
-    dataset_cls = globals().get(dataset, None)
-    if dataset_cls is None:
+    _plot_datasets = ["cemba_cell"]
+    print(dataset, _plot_datasets)
+    if dataset in _plot_datasets:
+        dataset_cls = globals().get(dataset, None)
+        if dataset_cls is None:
+            print(f"Unknown dataset {dataset}")
+        plot_func = getattr(dataset_cls, plot_type, None)
+        if plot_func is None:
+            print(f"Unknown plot type {plot_type} for dataset {dataset}")
+        try:
+            graph, graph_controls = plot_func(i, *args, **kwargs)
+        except Exception as e:
+            print(f"Error when plotting {plot_type} for dataset {dataset}")
+            raise e
+    elif dataset == "higlass":
+        try:
+            print('args', args)
+            print('kwargs', kwargs)
+            graph, graph_controls = higlass.get_higlass_and_control(index=i, layout=plot_type, *args, **kwargs)
+        except Exception as e:
+            print(f"Error when plotting {plot_type} for dataset {dataset}")
+            print(e)
+        tab_width = 12
+    else:
         print(f"Unknown dataset {dataset}")
 
-    plot_func = getattr(dataset_cls, plot_type, None)
-    if plot_func is None:
-        print(f"Unknown plot type {plot_type} for dataset {dataset}")
-
-    try:
-        graph, graph_controls = plot_func(i, *args, **kwargs)
-    except Exception as e:
-        print(f"Error when plotting {plot_type} for dataset {dataset}")
-        print(e)
-
-    return graph, graph_controls, plot_type
+    return graph, graph_controls, plot_type, tab_width
 
 
 # Callback to add new item to list
@@ -97,7 +109,7 @@ def add_figure(button_clicked, value):
     patched_fig_list = Patch()
 
     def new_figure_item(i, string):
-        graph, graph_controls, plot_type = _make_graph_from_string(i, string)
+        graph, graph_controls, plot_type, tab_width = _make_graph_from_string(i, string)
 
         if graph is None:
             return None
@@ -105,7 +117,7 @@ def add_figure(button_clicked, value):
         plot_title = plot_type.replace("_", " ").capitalize()
         tabs = html.Div(
             dbc.Tabs([dbc.Tab(graph, label=plot_title), dbc.Tab(graph_controls, label="Control")]),
-            className="mt-3 col-4",
+            className=f"mt-3 col-{tab_width}",
         )
         return tabs
 

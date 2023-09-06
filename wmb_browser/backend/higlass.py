@@ -14,7 +14,7 @@ CHROM_SIZES_PATH = "/browser/genome/mm10.main.chrom.sizes"
 
 MODALITY_PALETTE = {
     # modality: {color key: value}
-    "ATAC CPM": {"barFillColor": "#1f77b4"},
+    "ATAC CPM": {"barFillColor": "#EF7D1A"},
     "mCH Frac": {"barFillColor": "#16499D"},
     "mCG Frac": {"barFillColor": "#36AE37"},
     "Domain Boundary": {"barFillColor": "#E71F19"},
@@ -41,6 +41,14 @@ GENOME_TILESETS = {
 }
 
 
+def _string_to_list(string):
+    """Split string to list by , or | or +"""
+    if isinstance(string, str):
+        return re.split("[,|+]", string)
+    else:
+        return string
+
+
 def _auto_view_width(ncts):
     if ncts <= 1:
         view_width = 12
@@ -51,6 +59,28 @@ def _auto_view_width(ncts):
     else:
         view_width = 3
     return view_width
+
+
+def _get_view_height(view, nrows=1, adjust=150):
+    total_height = 0
+    for part in ["top", "center", "bottom"]:
+        _tl = getattr(view.tracks, part, [])
+        if _tl is not None:
+            for _t in _tl:
+                total_height += _t.height if _t.height is not None else 0
+    total_height *= nrows
+    total_height += adjust  # adjust for the top bar height
+    return int(total_height)
+
+
+def _get_view_width(view):
+    total_width = 0
+    for part in ["left", "center", "right"]:
+        _tl = getattr(view.tracks, part, [])
+        if _tl is not None:
+            for _t in _tl:
+                total_width += _t.width if _t.width is not None else 0
+    return total_width
 
 
 class HiglassBrowser:
@@ -74,17 +104,19 @@ class HiglassBrowser:
         self.height_2d = height_2d
         self.default_modality_2d = default_modality_2d
         self.default_modality_1d = default_modality_1d
-        self._default_track_options = {
+        self.default_track_options = {
             "showTooltip": show_tooltip,
             "showMousePosition": show_mouse_position,
         }
         self.toggle_position_search_box = toggle_position_search_box
 
         self.track_table = pd.read_csv(TRACK_TABLE_PATH, index_col=0)
+        self.subclass_list = self.track_table["CellSubClass"].dropna().unique().tolist()
         self.chrom_sizes = pd.read_csv(CHROM_SIZES_PATH, index_col=0, sep="\t", header=None).squeeze()
 
         self.all_modality_1d = ["ATAC CPM", "mCH Frac", "mCG Frac", "Domain Boundary", "Compartment Score"]
         self.all_modality_2d = ["Impute 100K", "Impute 10K", "Raw 100K"]
+        self.modality_list = self.all_modality_1d + self.all_modality_2d
 
         self.subclass_palette = color_collection.get_colors("subclass")
 
@@ -95,12 +127,16 @@ class HiglassBrowser:
         if track_option_dict is None:
             track_option_dict = {}
         elif track_option_dict == "default":
-            track_option_dict = self._default_track_options
+            track_option_dict = self.default_track_options
         return track_option_dict
 
     def _get_genome_annot_tracks(self):
-        chrom_size = self.genome_tileset["mm10_chrom_size"].track("chromosome-labels", height=25)
-        gene = self.genome_tileset["mm10_gene_annot"].track("gene-annotations", height=100)
+        chrom_size = self.genome_tilesets["mm10_chrom_size"].track("chromosome-labels", height=25)
+        chrom_size.options.update(self.default_track_options)
+
+        gene = self.genome_tilesets["mm10_gene_annot"].track("gene-annotations", height=100)
+        gene.options.update(self.default_track_options)
+
         return [chrom_size, gene]
 
     def _region_to_global_coord(self, region, extend_fold=0.5):
@@ -176,6 +212,7 @@ class HiglassBrowser:
         modality_1d=None,
         add_genome_track=True,
         view_width=6,
+        track_option_dict="default",
     ):
         """Get a 2D view for a given cell type"""
         if modality_2d is None:
@@ -190,6 +227,7 @@ class HiglassBrowser:
         # center 2D
         center_tileset = _get_tileset(track_type=modality_2d)
         center_track = center_tileset.track("heatmap", height=self.height_2d)
+        center_track.options.update(self._default_track_options(track_option_dict))
         all_tracks["center"].append(center_track)
 
         # top annot
@@ -204,6 +242,11 @@ class HiglassBrowser:
             else:
                 _tt = "bar"
             _t = _get_tileset(track_type=_m).track(_tt, height=self.height_1d)
+
+            _opts = self._default_track_options(track_option_dict)
+            _opts.update(self.modality_palette[_m])
+            _t.options.update(_opts)
+
             all_tracks[self.pos_1d].append(_t)
 
         view = higlass.view(*((v, k) for k, vl in all_tracks.items() for v in vl), width=view_width)
@@ -218,7 +261,13 @@ class HiglassBrowser:
         region1=None,
         region2=None,
         view_width="auto",
+        track_option_dict="default",
     ):
+        print(cell_types)
+        cell_types = _string_to_list(cell_types)
+        print(cell_types)
+        modality_1d = _string_to_list(modality_1d)
+
         if view_width == "auto":
             view_width = _auto_view_width(len(cell_types))
 
@@ -231,6 +280,7 @@ class HiglassBrowser:
                     modality_1d=modality_1d,
                     add_genome_track=add_genome_track,
                     view_width=view_width,
+                    track_option_dict=track_option_dict,
                 )
             )
 
@@ -270,24 +320,32 @@ class HiglassBrowser:
             viewconf = concat_viewconf.locks(*locks)
         else:
             viewconf = views[0].viewconf()
-        return viewconf
+
+        total_cols = len(views) * view_width
+        nrows = int(np.ceil(total_cols / 12))
+        viewconf_height = _get_view_height(viewconf.views[0], nrows=nrows)
+        return viewconf, viewconf_height
 
     def multi_cell_type_1d_viewconf(
         self,
         cell_types,
-        modalitys=None,
+        modalities=None,
+        region=None,
         colorby="modality",
         groupby="modality",
         view_width=12,
         add_genome_track=True,
         track_option_dict="default",
     ):
-        if modalitys is None:
-            modalitys = self.default_modality_1d
+        cell_types = _string_to_list(cell_types)
+        modalities = _string_to_list(modalities)
+
+        if modalities is None:
+            modalities = self.default_modality_1d
         if groupby == "modality":
-            groups = [(_ct, _m) for _m in modalitys for _ct in cell_types]
+            groups = [(_ct, _m) for _m in modalities for _ct in cell_types]
         else:
-            groups = [(_ct, _m) for _ct in cell_types for _m in modalitys]
+            groups = [(_ct, _m) for _ct in cell_types for _m in modalities]
 
         all_tracks = defaultdict(list)
 
@@ -330,7 +388,12 @@ class HiglassBrowser:
             all_tracks[self.pos_1d].append(_t)
 
         view = higlass.view(*((v, k) for k, vl in all_tracks.items() for v in vl), width=view_width)
-        return view.viewconf()
+        if region is not None:
+            coords = self._region_to_global_coord(region)
+            view.domain(x=coords, inplace=True)
+
+        viewconf_height = _get_view_height(view)
+        return view.viewconf(), viewconf_height
 
     def two_cell_type_diff_viewconf(
         self,
@@ -339,20 +402,33 @@ class HiglassBrowser:
         add_genome_track=True,
         modality_2d=None,
         modality_1d=None,
+        region1=None,
+        region2=None,
+        track_option_dict="default",
     ):
+        if modality_1d is None:
+            modality_1d = self.default_modality_1d
+        if modality_2d is None:
+            modality_2d = self.default_modality_2d
+
+        modality_1d = _string_to_list(modality_1d)
+
         # center tracks
         center1 = self.get_ct_tileset(ct_or_name=cell_type_1, track_type=modality_2d).track(
             "heatmap", height=self.height_2d
         )
-        center2 = self.get_ct_tileset(ct_or_name=cell_type_2, server=self.server, track_type=modality_2d).track(
+        center1.options.update(self._default_track_options(track_option_dict))
+        center2 = self.get_ct_tileset(ct_or_name=cell_type_2, track_type=modality_2d).track(
             "heatmap", height=self.height_2d
         )
+        center2.options.update(self._default_track_options(track_option_dict))
         # divide center tracks
         center3 = higlass.divide(center1, center2).opts(
             colorRange=["blue", "white", "red"],
             valueScaleMin=0.1,
             valueScaleMax=10,
         )
+        center3.options.update(self._default_track_options(track_option_dict))
         center3.options["name"] = f"{modality_2d} (left / right) - log scale"
 
         # add genome track
@@ -366,14 +442,27 @@ class HiglassBrowser:
         track_2_list = [(center2, "center")] + genome_tracks
         track_3_list = [(center3, "center")] + genome_tracks
         for _m in modality_1d:
+            _opts = self._default_track_options(track_option_dict)
+            _opts.update(self.modality_palette[_m])
+
             t1 = self.get_ct_tileset(ct_or_name=cell_type_1, track_type=_m).track("bar", height=self.height_1d)
+            t1.options.update(_opts)
             track_1_list.append((t1, self.pos_1d))
+
             t2 = self.get_ct_tileset(ct_or_name=cell_type_2, track_type=_m).track("bar", height=self.height_1d)
+            t2.options.update(_opts)
             track_2_list.append((t2, self.pos_1d))
+
             t3 = higlass.divide(t1, t2).opts(valueScaleMin=0.1, valueScaleMax=10)
             t3.type = "divergent-bar"
-            t3.options["valueScaling"] = "log"
-            t3.options["name"] = f"{_m} (left / right) - log scale"
+            t3.options.update(
+                {
+                    "valueScaling": "log",
+                    "name": f"{_m} (left / right) - log scale",
+                    "barFillColorTop": "red",
+                    "barFillColorBottom": "blue",
+                }
+            )
             track_3_list.append((t3, self.pos_1d))
 
         # views
@@ -400,7 +489,17 @@ class HiglassBrowser:
 
         # view locks
         viewconf = (v1 | v3 | v2).locks(*locks)
-        return viewconf
+
+        # set initial domain
+        for v in viewconf.views:
+            if region2 is None:
+                region2 = region1
+            if region1 is not None:
+                v.domain(x=self._region_to_global_coord(region1), inplace=True)
+                v.domain(y=self._region_to_global_coord(region2), inplace=True)
+
+        viewconf_height = _get_view_height(viewconf.views[0])
+        return viewconf, viewconf_height
 
     def loop_zoom_in_viewconf(
         self,
@@ -410,7 +509,10 @@ class HiglassBrowser:
         add_genome_track=True,
         modality_2d=None,
         modality_1d=None,
+        track_option_dict="default",
     ):
+        modality_1d = _string_to_list(modality_1d)
+
         if modality_2d is None:
             modality_2d = self.default_modality_2d
         if modality_1d is None:
@@ -426,6 +528,7 @@ class HiglassBrowser:
         center_track = self.get_ct_tileset(ct_or_name=cell_type, track_type=modality_2d).track(
             "heatmap", height=self.height_2d
         )
+        center_track.options.update(self._default_track_options(track_option_dict))
 
         # add genome track
         if add_genome_track:
@@ -442,15 +545,24 @@ class HiglassBrowser:
             (center_track, "center")
         ] + genome_tracks_top  # zoom in view, add genome tracks in the end so its on the outside
 
+        def _add_opts(_t, _m):
+            _opts = self._default_track_options(track_option_dict)
+            _opts.update(self.modality_palette[_m])
+            _t.options.update(_opts)
+            return
+
         for _m in modality_1d:
             _t = self.get_ct_tileset(ct_or_name=cell_type, track_type=_m).track("bar", height=self.height_1d)
+            _add_opts(_t, _m)
             left_track_list.append((_t, "top"))
             right_track_list.append((_t, "top"))
 
             # has to create a new track when plot in the same view
             _t = self.get_ct_tileset(ct_or_name=cell_type, track_type=_m).track("bar", height=self.height_1d)
+            _add_opts(_t, _m)
             left_track_list.append((_t, "left"))
             _t = self.get_ct_tileset(ct_or_name=cell_type, track_type=_m).track("bar", height=self.height_1d)
+            _add_opts(_t, _m)
             right_track_list.append((_t, "right"))
 
         # add genome tracks in the end so its on the outside
@@ -460,7 +572,9 @@ class HiglassBrowser:
         v1 = higlass.view(*right_track_list, width=6).domain(x=domain_x, y=domain_y)
 
         viewconf = v0.project(v1, "center") | v1
-        return viewconf
+
+        viewconf_height = _get_view_height(v0)
+        return viewconf, viewconf_height
 
     def render_viewconf_to_html(self, viewconf):
         """
@@ -493,8 +607,9 @@ class HiglassBrowser:
 
     def get_higlass_html(self, layout_name, *args, **kwargs):
         # get viewconf function by layout name
-        viewconf_func = getattr(self, f'{layout_name}_viewconf')
+        viewconf_func = getattr(self, f"{layout_name}_viewconf")
 
-        viewconf = viewconf_func(*args, **kwargs)
+        viewconf, viewconf_height = viewconf_func(*args, **kwargs)
         html = self.render_viewconf_to_html(viewconf)
-        return html
+        print(html)
+        return html, viewconf_height

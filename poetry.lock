@@ -178,6 +178,19 @@ files = [
 ]
 
 [[package]]
+name = "dash-daq"
+version = "0.5.0"
+description = "DAQ components for Dash"
+optional = false
+python-versions = "*"
+files = [
+    {file = "dash_daq-0.5.0.tar.gz", hash = "sha256:a1d85b6799f7b885652fbc44aebdb58c41254616a8d350b943beeb42ade4256a"},
+]
+
+[package.dependencies]
+dash = ">=1.6.1"
+
+[[package]]
 name = "dash-html-components"
 version = "2.0.0"
 description = "Vanilla HTML components for Dash"
@@ -1013,4 +1026,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "9882998d2ee6856c4b33ae517ed8c0da3fb907386762a0aed717788b2c11f3c2"
+content-hash = "06a6bb980794b29998e71c0821932bf10c6ba3d3ce91f3f6cf0f9b8a459c3a00"
