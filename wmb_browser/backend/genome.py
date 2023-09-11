@@ -8,31 +8,41 @@ MM10_MAIN_CHROM_SIZES_PATH = "/ref/mm10/mm10.main.chrom.sizes"
 
 
 class MM10GenomeRef:
-    def __init__(self, annot_version="GENCODE_vm23"):
+    def __init__(self):
         self.ENCODE_BLACKLIST_PATH = ENCODE_BLACKLIST_PATH
         self.GENCODE_MM10_vm23 = GENCODE_MM10_vm23
         self.TF_GENE_TABLE_PATH = MM10_TF_GENE_TABLE_PATH
         self.MAIN_CHROM_SIZES_PATH = MM10_MAIN_CHROM_SIZES_PATH
 
+        self._gene_meta = None
         self._gene_id_to_name = None
         self._gene_name_to_id = None
         self._gene_id_base_to_name = None
         self._gene_name_to_id_base = None
         self._tf_gene_table = None
-        self._get_gene_id_name_dict(annot_version=annot_version)
+        self._get_gene_id_name_dict()
         return
 
-    def get_gene_metadata(self, annot_version="GENCODE_vm23"):
-        if annot_version == "GENCODE_vm22":
-            gene_meta = pd.read_csv(self.GENCODE_MM10_vm22, sep="\t", index_col="gene_id")
-        elif annot_version == "GENCODE_vm23":
-            gene_meta = pd.read_csv(self.GENCODE_MM10_vm23, sep="\t", index_col="gene_id")
-        else:
-            raise NotImplementedError
-        return gene_meta
+    def get_gene_metadata(self):
+        if self._gene_meta is None:
+            self._gene_meta = pd.read_csv(self.GENCODE_MM10_vm23, sep="\t", index_col="gene_id")
+        return self._gene_meta
 
-    def _get_gene_id_name_dict(self, annot_version="GENCODE_vm23"):
-        self._gene_id_to_name = self.get_gene_metadata(annot_version)["gene_name"].to_dict()
+    def get_gene_bed(self):
+        df = self.get_gene_metadata().reset_index()
+        df = df[["chrom", "start", "end", "gene_id", "strand"]].copy()
+        return df
+    
+    def get_gene_region(self, gene):
+        if gene.startswith("ENSMUSG"):
+            gene_id = gene
+        else:
+            gene_id = self.gene_name_to_id(gene)
+        chrom, start, end = self.get_gene_metadata().loc[gene_id, ["chrom", "start", "end"]]
+        return f'{chrom}:{start}-{end}'
+
+    def _get_gene_id_name_dict(self):
+        self._gene_id_to_name = self.get_gene_metadata()["gene_name"].to_dict()
 
         self._gene_name_to_id = {v: k for k, v in self._gene_id_to_name.items()}
         self._gene_id_base_to_name = {k.split(".")[0]: v for k, v in self._gene_id_to_name.items()}

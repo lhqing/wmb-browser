@@ -6,11 +6,14 @@ import higlass
 import numpy as np
 import pandas as pd
 from higlass.api import display, gather_plugin_urls
-
 from .colors import color_collection
+from .genome import mm10
 
 TRACK_TABLE_PATH = "/browser/metadata/HiglassTracks.csv.gz"
 CHROM_SIZES_PATH = "/browser/genome/mm10.main.chrom.sizes"
+
+DEFAULT_HEIGHT_1D = 25
+DEFAULT_HEIGHT_2D = 450
 
 MODALITY_PALETTE = {
     # modality: {color key: value}
@@ -41,7 +44,7 @@ GENOME_TILESETS = {
 }
 
 
-def _string_to_list(string):
+def string_to_list(string):
     """Split string to list by , or | or +"""
     if isinstance(string, str):
         return re.split("[,|+]", string)
@@ -73,23 +76,13 @@ def _get_view_height(view, nrows=1, adjust=150):
     return int(total_height)
 
 
-def _get_view_width(view):
-    total_width = 0
-    for part in ["left", "center", "right"]:
-        _tl = getattr(view.tracks, part, [])
-        if _tl is not None:
-            for _t in _tl:
-                total_width += _t.width if _t.width is not None else 0
-    return total_width
-
-
 class HiglassBrowser:
     def __init__(
         self,
         server,
         pos_1d="top",
-        height_1d=25,
-        height_2d=500,
+        height_1d=DEFAULT_HEIGHT_1D,
+        height_2d=DEFAULT_HEIGHT_2D,
         show_tooltip=True,
         show_mouse_position=True,
         toggle_position_search_box=True,
@@ -139,7 +132,7 @@ class HiglassBrowser:
 
         return [chrom_size, gene]
 
-    def _region_to_global_coord(self, region, extend_fold=0.5):
+    def _region_to_global_coord(self, region, extend_fold=0.5, min_extend_length = 500000):
         """
         Turn a region string into global number coordinates
 
@@ -157,6 +150,8 @@ class HiglassBrowser:
         global_start, global_end
             Global coordinates
         """
+        if not re.search('.+(:|-|,)\d+(:|-|,)\d+', region):
+            region = mm10.get_gene_region(region)
         chrom, _, start, _, end = re.split("(:|-|,)", region.replace(" ", ""))
 
         chrom_order_index = self.chrom_sizes.index.tolist().index(chrom)
@@ -166,7 +161,7 @@ class HiglassBrowser:
         global_end = global_chrom_start + int(end)
 
         length = global_end - global_start
-        extend_length = max(abs(length) * extend_fold, 5000)
+        extend_length = max(abs(length) * extend_fold, min_extend_length)
         global_start -= extend_length
         global_end += extend_length
 
@@ -263,10 +258,8 @@ class HiglassBrowser:
         view_width="auto",
         track_option_dict="default",
     ):
-        print(cell_types)
-        cell_types = _string_to_list(cell_types)
-        print(cell_types)
-        modality_1d = _string_to_list(modality_1d)
+        cell_types = string_to_list(cell_types)
+        modality_1d = string_to_list(modality_1d)
 
         if view_width == "auto":
             view_width = _auto_view_width(len(cell_types))
@@ -299,6 +292,7 @@ class HiglassBrowser:
             view_lock = higlass.lock(*views)
             locks.append(view_lock)
 
+            
             # Lock value scale
             v0 = views[0]
             pos_attrs = ["center", "top", "bottom", "left", "right"]
@@ -313,8 +307,22 @@ class HiglassBrowser:
 
             # Concatenate Views side-by-side
             concat_viewconf = views[0].viewconf()
-            for view in views[1:]:
-                concat_viewconf = concat_viewconf | view
+            # Arrange views and lock value scale
+            max_cols = 4
+            row_viewconf_list = []
+            for row_start in range(0, len(views), max_cols):
+                row_views = views[row_start:row_start+max_cols]
+                row_viewconf = row_views[0].viewconf()
+                for view in row_views[1:]:
+                    row_viewconf = row_viewconf | view.viewconf()
+                row_viewconf_list.append(row_viewconf)
+            # multiple rows
+            if len(row_viewconf_list) > 1:
+                concat_viewconf = row_viewconf_list[0]
+                for row_viewconf in row_viewconf_list[1:]:
+                    concat_viewconf = concat_viewconf / row_viewconf
+            else:
+                concat_viewconf = row_viewconf_list[0]
 
             # Apply synchronization lock
             viewconf = concat_viewconf.locks(*locks)
@@ -337,8 +345,8 @@ class HiglassBrowser:
         add_genome_track=True,
         track_option_dict="default",
     ):
-        cell_types = _string_to_list(cell_types)
-        modalities = _string_to_list(modalities)
+        cell_types = string_to_list(cell_types)
+        modalities = string_to_list(modalities)
 
         if modalities is None:
             modalities = self.default_modality_1d
@@ -389,7 +397,7 @@ class HiglassBrowser:
 
         view = higlass.view(*((v, k) for k, vl in all_tracks.items() for v in vl), width=view_width)
         if region is not None:
-            coords = self._region_to_global_coord(region)
+            coords = self._region_to_global_coord(region, min_extend_length=5000)
             view.domain(x=coords, inplace=True)
 
         viewconf_height = _get_view_height(view)
@@ -411,7 +419,7 @@ class HiglassBrowser:
         if modality_2d is None:
             modality_2d = self.default_modality_2d
 
-        modality_1d = _string_to_list(modality_1d)
+        modality_1d = string_to_list(modality_1d)
 
         # center tracks
         center1 = self.get_ct_tileset(ct_or_name=cell_type_1, track_type=modality_2d).track(
@@ -505,21 +513,32 @@ class HiglassBrowser:
         self,
         cell_type,
         region1,
-        region2,
+        region2=None,
+        zoom_region1=None,
+        zoom_region2=None,
         add_genome_track=True,
         modality_2d=None,
         modality_1d=None,
         track_option_dict="default",
     ):
-        modality_1d = _string_to_list(modality_1d)
+        modality_1d = string_to_list(modality_1d)
 
         if modality_2d is None:
             modality_2d = self.default_modality_2d
         if modality_1d is None:
             modality_1d = self.default_modality_1d
 
+        if region2 is None:
+            region2 = region1
+        if zoom_region1 is None:
+            zoom_region1 = region1
+        if zoom_region2 is None:
+            zoom_region2 = zoom_region1
+
         domain_x = self._region_to_global_coord(region1)
         domain_y = self._region_to_global_coord(region2)
+        zoom_domain_x = self._region_to_global_coord(zoom_region1, min_extend_length=5000)
+        zoom_domain_y = self._region_to_global_coord(zoom_region2, min_extend_length=5000)
 
         coord_min = np.min([domain_x, domain_y])
         coord_max = np.max([domain_x, domain_y])
@@ -569,7 +588,7 @@ class HiglassBrowser:
         right_track_list += genome_tracks_right[::-1]
 
         v0 = higlass.view(*left_track_list, width=6).domain(x=v0_x, y=v0_y)
-        v1 = higlass.view(*right_track_list, width=6).domain(x=domain_x, y=domain_y)
+        v1 = higlass.view(*right_track_list, width=6).domain(x=zoom_domain_x, y=zoom_domain_y)
 
         viewconf = v0.project(v1, "center") | v1
 
@@ -611,5 +630,4 @@ class HiglassBrowser:
 
         viewconf, viewconf_height = viewconf_func(*args, **kwargs)
         html = self.render_viewconf_to_html(viewconf)
-        print(html)
         return html, viewconf_height

@@ -8,6 +8,10 @@ plot_examples = """
 cemba_cell,continuous_scatter,l1_tsne,gene_mch:Gad1
 cemba_cell,categorical_scatter,l1_tsne,CellSubClass
 cemba_cell,categorical_scatter,l1_tsne,DissectionRegion
+higlass,multi_cell_type_2d,cell_types=CA3 Glut+Sst Gaba,region1=chr1:11000000-12000000
+higlass,multi_cell_type_1d,cell_types=CA3 Glut+Sst Gaba,region=chr1:11000000-12000000
+higlass,two_cell_type_diff,cell_type_1=CA3 Glut,cell_type_2=Sst Gaba,region1=chr1:10000000-13000000
+higlass,loop_zoom_in,cell_type=CA3 Glut,region1=chr1:10000000-13000000,zoom_region1=chr1:11550000-11720000,zoom_region2=chr1:12710000-12910000
 """
 
 # master input card
@@ -17,17 +21,19 @@ input_card = dbc.Card(
         dbc.CardBody(
             [
                 dbc.Textarea(id="new-item-input"),
-                html.P(
-                    f"Some quick examples: {plot_examples}",
-                    className="card-text",
-                ),
+                html.P(f"{plot_examples}", className="card-text", style={"white-space": "pre-wrap"}),
                 dbc.Button("Add", id="add-btn", outline=True, color="primary", n_clicks=0),
             ]
         ),
     ]
 )
 
-layout = html.Div([html.Div(id="input-div", children=[input_card]), html.Div(id="figure-div", className="row")])
+layout = html.Div(
+    [
+        html.Div(id="input-div", children=[input_card]),
+        html.Div(id="figure-div", className="row"),
+    ]
+)
 
 
 def _string_to_args_and_kwargs(string):
@@ -81,8 +87,8 @@ def _make_graph_from_string(i, string):
             raise e
     elif dataset == "higlass":
         try:
-            print('args', args)
-            print('kwargs', kwargs)
+            print("args", args)
+            print("kwargs", kwargs)
             graph, graph_controls = higlass.get_higlass_and_control(index=i, layout=plot_type, *args, **kwargs)
         except Exception as e:
             print(f"Error when plotting {plot_type} for dataset {dataset}")
@@ -116,7 +122,12 @@ def add_figure(button_clicked, value):
 
         plot_title = plot_type.replace("_", " ").capitalize()
         tabs = html.Div(
-            dbc.Tabs([dbc.Tab(graph, label=plot_title), dbc.Tab(graph_controls, label="Control")]),
+            dbc.Tabs(
+                [
+                    dbc.Tab(graph, label=plot_title),
+                    dbc.Tab(graph_controls, label="Control"),
+                ]
+            ),
             className=f"mt-3 col-{tab_width}",
         )
         return tabs
@@ -170,6 +181,115 @@ def update_categorical_scatter_graph(n_clicks, color, coord, sample):
         marker_size="auto",
     )
     return fig
+
+
+@callback(
+    Output({"index": MATCH, "type": "higlass-multi_cell_type_2d-iframe"}, "srcDoc"),
+    Output({"index": MATCH, "type": "higlass-multi_cell_type_2d-iframe"}, "style"),
+    Input({"index": MATCH, "type": "multi_cell_type_2d-update-btn"}, "n_clicks"),
+    State({"index": MATCH, "type": "multi_cell_type_2d-cell-types-dropdown"}, "value"),
+    State({"index": MATCH, "type": "multi_cell_type_2d-modality_2d-dropdown"}, "value"),
+    State({"index": MATCH, "type": "multi_cell_type_2d-modality_1d-dropdown"}, "value"),
+    State({"index": MATCH, "type": "multi_cell_type_2d-region1-input"}, "value"),
+    State({"index": MATCH, "type": "multi_cell_type_2d-region2-input"}, "value"),
+    prevent_initial_call=True,
+)
+def update_multi_cell_type_2d_graph(n_clicks, cell_types, modality_2d, modality_1d, region1, region2):
+    layout = "multi_cell_type_2d"
+    html, html_height = higlass.get_higlass_html(
+        layout,
+        cell_types=cell_types,
+        modality_2d=modality_2d,
+        modality_1d=modality_1d,
+        region1=region1,
+        region2=region2,
+    )
+
+    _style = {"height": f"{html_height}px", "border": "none"}
+    return html, _style
+
+
+@callback(
+    Output({"index": MATCH, "type": "higlass-multi_cell_type_1d-iframe"}, "srcDoc"),
+    Output({"index": MATCH, "type": "higlass-multi_cell_type_1d-iframe"}, "style"),
+    Input({"index": MATCH, "type": "multi_cell_type_1d-update-btn"}, "n_clicks"),
+    State({"index": MATCH, "type": "multi_cell_type_1d-cell-types-dropdown"}, "value"),
+    State({"index": MATCH, "type": "multi_cell_type_1d-modalities-dropdown"}, "value"),
+    State({"index": MATCH, "type": "multi_cell_type_1d-region-input"}, "value"),
+    State({"index": MATCH, "type": "multi_cell_type_1d-colorby-sel"}, "value"),
+    State({"index": MATCH, "type": "multi_cell_type_1d-groupby-sel"}, "value"),
+    prevent_initial_call=True,
+)
+def update_multi_cell_type_1d_graph(n_clicks, cell_types, modalities, region, colorby, groupby):
+    layout = "multi_cell_type_1d"
+    html, html_height = higlass.get_higlass_html(
+        layout,
+        cell_types=cell_types,
+        modalities=modalities,
+        region=region,
+        colorby=colorby,
+        groupby=groupby,
+    )
+    _style = {"height": f"{html_height}px", "border": "none"}
+    return html, _style
+
+
+@callback(
+    Output({"index": MATCH, "type": "higlass-two_cell_type_diff-iframe"}, "srcDoc"),
+    Output({"index": MATCH, "type": "higlass-two_cell_type_diff-iframe"}, "style"),
+    Input({"index": MATCH, "type": "two_cell_type_diff-update-btn"}, "n_clicks"),
+    State({"index": MATCH, "type": "two_cell_type_diff-cell-type-1-dropdown"}, "value"),
+    State({"index": MATCH, "type": "two_cell_type_diff-cell-type-2-dropdown"}, "value"),
+    State({"index": MATCH, "type": "two_cell_type_diff-modality_2d-dropdown"}, "value"),
+    State({"index": MATCH, "type": "two_cell_type_diff-modality_1d-dropdown"}, "value"),
+    State({"index": MATCH, "type": "two_cell_type_diff-region1-input"}, "value"),
+    State({"index": MATCH, "type": "two_cell_type_diff-region2-input"}, "value"),
+    prevent_initial_call=True,
+)
+def update_two_cell_type_diff_graph(n_clicks, cell_type_1, cell_type_2, modality_2d, modality_1d, region1, region2):
+    layout = "two_cell_type_diff"
+    html, html_height = higlass.get_higlass_html(
+        layout,
+        cell_type_1=cell_type_1,
+        cell_type_2=cell_type_2,
+        modality_2d=modality_2d,
+        modality_1d=modality_1d,
+        region1=region1,
+        region2=region2,
+    )
+    _style = {"height": f"{html_height}px", "border": "none"}
+    return html, _style
+
+
+@callback(
+    Output({"index": MATCH, "type": "higlass-loop_zoom_in-iframe"}, "srcDoc"),
+    Output({"index": MATCH, "type": "higlass-loop_zoom_in-iframe"}, "style"),
+    Input({"index": MATCH, "type": "loop_zoom_in-update-btn"}, "n_clicks"),
+    State({"index": MATCH, "type": "loop_zoom_in-cell-type-dropdown"}, "value"),
+    State({"index": MATCH, "type": "loop_zoom_in-modality_2d-dropdown"}, "value"),
+    State({"index": MATCH, "type": "loop_zoom_in-modality_1d-dropdown"}, "value"),
+    State({"index": MATCH, "type": "loop_zoom_in-region1-input"}, "value"),
+    State({"index": MATCH, "type": "loop_zoom_in-region2-input"}, "value"),
+    State({"index": MATCH, "type": "loop_zoom_in-zoom-region1-input"}, "value"),
+    State({"index": MATCH, "type": "loop_zoom_in-zoom-region2-input"}, "value"),
+    prevent_initial_call=True,
+)
+def update_loop_zoom_in_graph(
+    n_clicks, cell_type, modality_2d, modality_1d, region1, region2, zoom_region1, zoom_region2
+):
+    layout = "loop_zoom_in"
+    html, html_height = higlass.get_higlass_html(
+        layout,
+        cell_type=cell_type,
+        modality_2d=modality_2d,
+        modality_1d=modality_1d,
+        region1=region1,
+        region2=region2,
+        zoom_region1=zoom_region1,
+        zoom_region2=zoom_region2,
+    )
+    _style = {"height": f"{html_height}px", "border": "none"}
+    return html, _style
 
 
 def create_dynamic_browser_layout(*args, **kwargs):

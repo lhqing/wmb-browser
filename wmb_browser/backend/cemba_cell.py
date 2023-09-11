@@ -295,11 +295,10 @@ class CEMBAsnmCCells(Dataset):
             [
                 dbc.Label("Scatter coordinates", width="auto"),
                 dbc.Col(
-                    dbc.Input(
+                    dcc.Dropdown(
                         id={"index": index, "type": "coord_input"},
-                        type="text",
+                        options=[{"label": c, "value": c} for c in self.coords],
                         value=coord,
-                        placeholder="Enter coordinates variable",
                     ),
                     className="me-3",
                 ),
