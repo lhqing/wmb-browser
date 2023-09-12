@@ -14,6 +14,7 @@ app.layout = html.Div(
     ]
 )
 
+
 # Callback to add new item to list
 @callback(
     Output("list-container-div", "children", allow_duplicate=True),

@@ -27,9 +27,10 @@ FUNCTIONS = [
                     "description": (
                         "The name of the categorical or continuous variable to be used for coloring the scatter plot."
                         " The categorical variable can be a cell annotation, such as CellGroup, CEMBARegion, etc, and"
-                        " the continuous variable can be continous metadata, such as mCCCFrac, mCGFrac, etc."
-                        " It can also be a measurement type in the form of VALUE_TYPE:GENE_NAME, such as gene_mch:Gad1, gene_mcg:Cux1."
-                        " The VALUE_TYPE can be gene_mch, gene_mcg, rna, gene_atac, the GENE_NAME are all the gene names"
+                        " the continuous variable can be continous metadata, such as mCCCFrac, mCGFrac, etc. It can"
+                        " also be a measurement type in the form of VALUE_TYPE:GENE_NAME, such as gene_mch:Gad1,"
+                        " gene_mcg:Cux1. The VALUE_TYPE can be gene_mch, gene_mcg, rna, gene_atac, the GENE_NAME are"
+                        " all the gene names"
                     ),
                 },
                 "sample": {
