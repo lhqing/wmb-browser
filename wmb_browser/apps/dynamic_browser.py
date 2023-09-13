@@ -1,5 +1,5 @@
 import dash_bootstrap_components as dbc
-from dash import MATCH, Input, Output, Patch, State, callback, html
+from dash import MATCH, Input, Output, Patch, State, callback, html, callback_context, ALL, dcc
 from dash.exceptions import PreventUpdate
 
 from wmb_browser.backend import *
@@ -72,7 +72,6 @@ def _make_graph_from_string(i, string):
         print(e)
 
     _plot_datasets = ["cemba_cell"]
-    print(dataset, _plot_datasets)
     if dataset in _plot_datasets:
         dataset_cls = globals().get(dataset, None)
         if dataset_cls is None:
@@ -122,14 +121,16 @@ def add_figure(button_clicked, value):
 
         plot_title = plot_type.replace("_", " ").capitalize()
         tabs = html.Div(
-            dbc.Tabs(
-                [
-                    dbc.Tab(graph, label=plot_title),
-                    dbc.Tab(graph_controls, label="Control"),
-                ]
-            ),
-            className=f"mt-3 col-{tab_width}",
-        )
+                dbc.Tabs(
+                    [
+                        dbc.Tab(graph, label=plot_title),
+                        dbc.Tab(graph_controls, label="Control"),
+                    ]
+                ),
+                className=f"mt-1 col-{tab_width}",
+                id={"index": i, "type": "graph-tabs"},
+            )
+        
         return tabs
 
     for line_idx, line in enumerate(value.split("\n")):
@@ -143,6 +144,28 @@ def add_figure(button_clicked, value):
                 continue
             patched_fig_list.append(tabs)
     return patched_fig_list, ""
+
+
+@callback(
+    Output("figure-div", "children", allow_duplicate=True),
+    Input({"index": ALL, "type": "delete-figure-btn"}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def delete_fugure(n_clicks):
+    if sum(n_clicks) == 0:
+        raise PreventUpdate
+
+    patched_list = Patch()
+    values_to_remove = []
+    # example callback_context.inputs_list
+    # [[{'id': {'index': '1-0', 'type': 'delete-figure-btn'}, 'property': 'n_clicks', 'value': 1}]]
+    for i, click in enumerate(n_clicks):
+        if click > 0:
+            # del button is clicked
+            values_to_remove.insert(0, i)
+    for v in values_to_remove:
+        del patched_list[v]
+    return patched_list
 
 
 @callback(
@@ -184,6 +207,50 @@ def update_categorical_scatter_graph(n_clicks, color, coord, sample):
 
 
 @callback(
+    Output({"index": ALL, "type": "continuous_scatter-graph"}, "figure", allow_duplicate=True),
+    Output({"index": ALL, "type": "categorical_scatter-graph"}, "figure", allow_duplicate=True),
+    Input({"index": ALL, "type": "continuous_scatter-graph"}, "relayoutData"),
+    Input({"index": ALL, "type": "categorical_scatter-graph"}, "relayoutData"),
+    State({"index": ALL, "type": "coord_input"}, "value"),
+    prevent_initial_call=True,
+)
+def update_scatter_graph_relayout_data(cont_args, cat_args, coords):
+    trigger = callback_context.triggered[0]
+    trigger_layout = trigger["value"]
+
+    if "autosize" in trigger_layout:
+        raise PreventUpdate
+    else:
+        xaxis_min = trigger_layout.get("xaxis.range[0]")
+        xaxis_max = trigger_layout.get("xaxis.range[1]")
+        yaxis_min = trigger_layout.get("yaxis.range[0]")
+        yaxis_max = trigger_layout.get("yaxis.range[1]")
+
+    print("TRIGGER", callback_context.triggered)
+    print('COORDS', coords)
+    print("STATE", callback_context.states_list)
+    print("INPUT", callback_context.inputs_list)
+
+    # get coord for each index
+    idx_to_coord = {}
+    for state_dict in callback_context.states_list[0]:
+        idx = state_dict["id"]["index"]
+        coord = state_dict["value"]
+        idx_to_coord[idx] = coord
+
+    cont_patches = [Patch() for _ in range(len(cont_args))]
+    cat_patches = [Patch() for _ in range(len(cat_args))]
+
+    for _p in cont_patches:
+        _p["layout"]["xaxis"]["range"] = [xaxis_min, xaxis_max]
+        _p["layout"]["yaxis"]["range"] = [yaxis_min, yaxis_max]
+    for _p in cat_patches:
+        _p["layout"]["xaxis"]["range"] = [xaxis_min, xaxis_max]
+        _p["layout"]["yaxis"]["range"] = [yaxis_min, yaxis_max]
+    return cont_patches, cat_patches
+
+
+@callback(
     Output({"index": MATCH, "type": "higlass-multi_cell_type_2d-iframe"}, "srcDoc"),
     Output({"index": MATCH, "type": "higlass-multi_cell_type_2d-iframe"}, "style"),
     Input({"index": MATCH, "type": "multi_cell_type_2d-update-btn"}, "n_clicks"),
@@ -196,6 +263,8 @@ def update_categorical_scatter_graph(n_clicks, color, coord, sample):
 )
 def update_multi_cell_type_2d_graph(n_clicks, cell_types, modality_2d, modality_1d, region1, region2):
     layout = "multi_cell_type_2d"
+    if cell_types is None:
+        raise PreventUpdate
     html, html_height = higlass.get_higlass_html(
         layout,
         cell_types=cell_types,
@@ -222,6 +291,8 @@ def update_multi_cell_type_2d_graph(n_clicks, cell_types, modality_2d, modality_
 )
 def update_multi_cell_type_1d_graph(n_clicks, cell_types, modalities, region, colorby, groupby):
     layout = "multi_cell_type_1d"
+    if cell_types is None:
+        raise PreventUpdate
     html, html_height = higlass.get_higlass_html(
         layout,
         cell_types=cell_types,
@@ -248,6 +319,10 @@ def update_multi_cell_type_1d_graph(n_clicks, cell_types, modalities, region, co
 )
 def update_two_cell_type_diff_graph(n_clicks, cell_type_1, cell_type_2, modality_2d, modality_1d, region1, region2):
     layout = "two_cell_type_diff"
+
+    if cell_type_1 is None or cell_type_2 is None:
+        raise PreventUpdate
+
     html, html_height = higlass.get_higlass_html(
         layout,
         cell_type_1=cell_type_1,
@@ -278,6 +353,10 @@ def update_loop_zoom_in_graph(
     n_clicks, cell_type, modality_2d, modality_1d, region1, region2, zoom_region1, zoom_region2
 ):
     layout = "loop_zoom_in"
+
+    if cell_type is None:
+        raise PreventUpdate
+
     html, html_height = higlass.get_higlass_html(
         layout,
         cell_type=cell_type,

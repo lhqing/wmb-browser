@@ -82,7 +82,6 @@ def display_page(pathname, search, total_url):
     # add layout functions here based on pathname
     # elif pathname == f"/{APP_ROOT_NAME}app1":
     #     layout = app1_layout(search_dict)
-
     else:
         layout = None
 
