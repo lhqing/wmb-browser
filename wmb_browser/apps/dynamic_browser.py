@@ -4,26 +4,131 @@ from dash.exceptions import PreventUpdate
 
 from wmb_browser.backend import *
 
-plot_examples = """
-cemba_cell,continuous_scatter,l1_tsne,gene_mch:Gad1
-cemba_cell,categorical_scatter,l1_tsne,CellSubClass
-cemba_cell,categorical_scatter,l1_tsne,DissectionRegion
-higlass,multi_cell_type_2d,cell_types=CA3 Glut+Sst Gaba,region1=chr1:11000000-12000000
-higlass,multi_cell_type_1d,cell_types=CA3 Glut+Sst Gaba,region=chr1:11000000-12000000
-higlass,two_cell_type_diff,cell_type_1=CA3 Glut,cell_type_2=Sst Gaba,region1=chr1:10000000-13000000
-higlass,loop_zoom_in,cell_type=CA3 Glut,region1=chr1:10000000-13000000,zoom_region1=chr1:11550000-11720000,zoom_region2=chr1:12710000-12910000
-"""
+plot_examples = {
+    "Gene mCH": ("cemba_cell,continuous_scatter,l1_tsne,gene_mch:Gad1", "primary"),
+    "Gene mCG": ("cemba_cell,continuous_scatter,l1_tsne,gene_mcg:Gad1", "primary"),
+    "Gene RNA": ("cemba_cell,continuous_scatter,l1_tsne,gene_rna:Gad1", "primary"),
+    "Cell Subclass": ("cemba_cell,categorical_scatter,l1_tsne,CellSubClass", "success"),
+    "Dissection Region": ("cemba_cell,categorical_scatter,l1_tsne,DissectionRegion", "success"),
+    "Cell Subclass MERFISH": ("cemba_cell,categorical_scatter,slice59_merfish,DissectionRegion", "success"),
+    "Multi-2D Higlass": (
+        "higlass,multi_cell_type_2d,cell_types=CA3 Glut+Sst Gaba,region1=chr1:11000000-12000000",
+        "info",
+    ),
+    "Multi-1D Higlass": (
+        "higlass,multi_cell_type_1d,cell_types=CA3 Glut+Sst Gaba,region=chr1:11000000-12000000",
+        "info",
+    ),
+    "Diff Compare Higlass": (
+        "higlass,two_cell_type_diff,cell_type_1=CA3 Glut,cell_type_2=Sst Gaba,region1=chr1:10000000-13000000",
+        "info",
+    ),
+    "2D Zoom-in Higlass": (
+        (
+            "higlass,loop_zoom_in,cell_type=CA3"
+            " Glut,region1=chr1:10000000-13000000,zoom_region1=chr1:11550000-11720000,zoom_region2=chr1:12710000-12910000"
+        ),
+        "info",
+    ),
+}
 
 # master input card
 input_card = dbc.Card(
     [
-        dbc.CardHeader("Create your own browser layout"),
+        dbc.CardHeader("Create your browser layout"),
         dbc.CardBody(
             [
-                dbc.Textarea(id="new-item-input"),
-                html.P(f"{plot_examples}", className="card-text", style={"white-space": "pre-wrap"}),
-                dbc.Button("Add", id="add-btn", outline=True, color="primary", n_clicks=0),
-            ]
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                dbc.Row(
+                                    dbc.Button(
+                                        "Add Panels",
+                                        id="add-btn",
+                                        # className="m-1",
+                                        color="primary",
+                                        n_clicks=0,
+                                        size="lg",
+                                        style={"width": "70%"},
+                                    ),
+                                    class_name="m-2",
+                                    justify="center",
+                                ),
+                                dbc.Row(
+                                    dbc.Button(
+                                        "Open Cell Clipboard",
+                                        id="show-clipboard-btn",
+                                        # className="m-1",
+                                        color="primary",
+                                        n_clicks=0,
+                                        outline=True,
+                                        style={"width": "70%"},
+                                    ),
+                                    class_name="m-2",
+                                    justify="center",
+                                ),
+                                dbc.Row(
+                                    dbc.Button(
+                                        "Download Current Layout Config",
+                                        id="get-config-btn",
+                                        # className="m-1",
+                                        color="primary",
+                                        n_clicks=0,
+                                        outline=True,
+                                        style={"width": "70%"},
+                                    ),
+                                    class_name="m-2",
+                                    justify="center",
+                                ),
+                            ],
+                            xxl=2,
+                            xl=3,
+                            lg=4,
+                            md=5,
+                            sm=12,
+                        ),
+                        dbc.Col(
+                            [
+                                dbc.Row(dbc.Textarea(id="new-item-input", style={"height": 100}), class_name="mb-1"),
+                                dbc.Row(
+                                    html.Div(
+                                        [html.P("Some examples:", className="m-1")]
+                                        + [
+                                            dbc.Button(
+                                                _name,
+                                                color=_color,
+                                                className="m-1",
+                                                outline=True,
+                                                size="sm",
+                                                id={"index": _name, "type": "example-btn"},
+                                            )
+                                            for _name, (_, _color) in plot_examples.items()
+                                        ]
+                                    ),
+                                    class_name="mb-1",
+                                ),
+                            ],
+                            xxl=10,
+                            xl=9,
+                            lg=8,
+                            md=7,
+                            sm=12,
+                        ),
+                    ]
+                ),
+                dbc.Offcanvas(
+                    [
+                        html.P("These are the most recent cells you clicked on the scatter plots."),
+                        dcc.Store(id="cell-clipboard-count", data=[], storage_type="memory"),
+                        dbc.Row(id="cell-clipboard-content", children=[]),
+                    ],
+                    id="offcanvas",
+                    title="Cell Metadata Clipboard",
+                    style={"width": "40%"},
+                    is_open=False,
+                ),
+            ],
         ),
     ]
 )
@@ -96,13 +201,84 @@ def _make_graph_from_string(i, string):
     else:
         print(f"Unknown dataset {dataset}")
 
-    return graph, graph_controls, plot_type, tab_width
+    return graph, graph_controls, dataset, plot_type, tab_width
+
+
+@callback(
+    Output("offcanvas", "is_open", allow_duplicate=True),
+    Input("show-clipboard-btn", "n_clicks"),
+    State("offcanvas", "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_clipboard(n_clicks, is_open):
+    if n_clicks > 0:
+        return not is_open
+    return is_open
+
+
+@callback(
+    Output("cell-clipboard-content", "children"),
+    Output("cell-clipboard-count", "data"),
+    Input({"index": ALL, "type": "categorical_scatter-graph"}, "clickData"),
+    Input({"index": ALL, "type": "continuous_scatter-graph"}, "clickData"),
+    State("cell-clipboard-count", "data"),
+    prevent_initial_call=True,
+)
+def update_cell_clipboard(cat_click_data, cont_click_data, curr_cell_clip_ids):
+    """
+    For each click event on scatter plot,
+    add a new card containing cell metadata to the clipboard, and turn on the offcanvas
+    """
+    # # print all inputs
+    # print("cat_click_data", cat_click_data)
+    # print("cont_click_data", cont_click_data)
+    # print("curr_cell_clip_ids", curr_cell_clip_ids)
+
+    patch = Patch()
+    update = False
+    for data in cat_click_data + cont_click_data:
+        if data is None:
+            continue
+        cell_num_index = data["points"][0]["customdata"][0]
+        if cell_num_index in curr_cell_clip_ids:
+            continue
+        else:
+            curr_cell_clip_ids.append(cell_num_index)
+            update = True
+            if len(curr_cell_clip_ids) > 6:
+                del patch[-1]
+
+        card = cemba_cell.get_cell_metadata_markdown(cell_num_index)
+        col = dbc.Col(card, xl=6)
+        patch.prepend(col)
+    if update:
+        return patch, curr_cell_clip_ids
+    else:
+        raise PreventUpdate
+
+
+@callback(
+    Output("new-item-input", "value", allow_duplicate=True),
+    Input({"index": ALL, "type": "example-btn"}, "n_clicks"),
+    State("new-item-input", "value"),
+    prevent_initial_call=True,
+)
+def add_example(n_clicks, cur_value):
+    if n_clicks == 0:
+        raise PreventUpdate
+    else:
+        trigger_id = callback_context.triggered_id["index"]
+        text = plot_examples[trigger_id][0]
+        if cur_value is None or cur_value == "":
+            return text
+        else:
+            return cur_value + "\n" + text
 
 
 # Callback to add new item to list
 @callback(
     Output("figure-div", "children", allow_duplicate=True),
-    Output("new-item-input", "value"),
+    Output("new-item-input", "value", allow_duplicate=True),
     Input("add-btn", "n_clicks"),
     State("new-item-input", "value"),
     prevent_initial_call=True,
@@ -114,23 +290,33 @@ def add_figure(button_clicked, value):
     patched_fig_list = Patch()
 
     def new_figure_item(i, string):
-        graph, graph_controls, plot_type, tab_width = _make_graph_from_string(i, string)
+        graph, graph_controls, dataset, plot_type, tab_width = _make_graph_from_string(i, string)
+
+        if dataset == "higlass":
+            width = 12
+            xl = 12
+            lg = 12
+        else:
+            width = 12
+            xl = 4
+            lg = 6
 
         if graph is None:
             return None
 
         plot_title = plot_type.replace("_", " ").capitalize()
-        tabs = html.Div(
-                dbc.Tabs(
-                    [
-                        dbc.Tab(graph, label=plot_title),
-                        dbc.Tab(graph_controls, label="Control"),
-                    ]
-                ),
-                className=f"mt-1 col-{tab_width}",
-                id={"index": i, "type": "graph-tabs"},
-            )
-        
+        tabs = dbc.Col(
+            dbc.Tabs(
+                [
+                    dbc.Tab(graph, label=plot_title),
+                    dbc.Tab(graph_controls, label="Control"),
+                ]
+            ),
+            width=width,
+            xl=xl,
+            lg=lg,
+            class_name="mt-3",
+        )
         return tabs
 
     for line_idx, line in enumerate(value.split("\n")):
@@ -221,15 +407,13 @@ def update_scatter_graph_relayout_data(cont_args, cat_args, coords):
     if "autosize" in trigger_layout:
         raise PreventUpdate
     else:
-        xaxis_min = trigger_layout.get("xaxis.range[0]")
-        xaxis_max = trigger_layout.get("xaxis.range[1]")
-        yaxis_min = trigger_layout.get("yaxis.range[0]")
-        yaxis_max = trigger_layout.get("yaxis.range[1]")
-
-    print("TRIGGER", callback_context.triggered)
-    print('COORDS', coords)
-    print("STATE", callback_context.states_list)
-    print("INPUT", callback_context.inputs_list)
+        try:
+            xaxis_min = trigger_layout["xaxis.range[0]"]
+            xaxis_max = trigger_layout["xaxis.range[1]"]
+            yaxis_min = trigger_layout["yaxis.range[0]"]
+            yaxis_max = trigger_layout["yaxis.range[1]"]
+        except KeyError:
+            raise PreventUpdate
 
     # get coord for each index
     idx_to_coord = {}
@@ -237,17 +421,38 @@ def update_scatter_graph_relayout_data(cont_args, cat_args, coords):
         idx = state_dict["id"]["index"]
         coord = state_dict["value"]
         idx_to_coord[idx] = coord
+    trigger_coord = idx_to_coord[callback_context.triggered_id["index"]]
 
-    cont_patches = [Patch() for _ in range(len(cont_args))]
-    cat_patches = [Patch() for _ in range(len(cat_args))]
+    cont_inputs, cat_inputs = callback_context.inputs_list
+    cont_outputs, cat_outputs = [], []
 
-    for _p in cont_patches:
-        _p["layout"]["xaxis"]["range"] = [xaxis_min, xaxis_max]
-        _p["layout"]["yaxis"]["range"] = [yaxis_min, yaxis_max]
-    for _p in cat_patches:
-        _p["layout"]["xaxis"]["range"] = [xaxis_min, xaxis_max]
-        _p["layout"]["yaxis"]["range"] = [yaxis_min, yaxis_max]
-    return cont_patches, cat_patches
+    # print all states
+    # print("cont_args", cont_args)
+    # print("cat_args", cat_args)
+    # print("coords", coords)
+    # print("trigger", trigger)
+    # print("trigger_layout", trigger_layout)
+
+    for input in cont_inputs:
+        _p = Patch()
+        coord = idx_to_coord[input["id"]["index"]]
+        if coord == trigger_coord:
+            _p["layout"]["xaxis"]["range"] = [xaxis_min, xaxis_max]
+            _p["layout"]["yaxis"]["range"] = [yaxis_min, yaxis_max]
+        cont_outputs.append(_p)
+
+    for input in cat_inputs:
+        _p = Patch()
+        coord = idx_to_coord[input["id"]["index"]]
+        if coord == trigger_coord:
+            _p["layout"]["xaxis"]["range"] = [xaxis_min, xaxis_max]
+            _p["layout"]["yaxis"]["range"] = [yaxis_min, yaxis_max]
+        cat_outputs.append(_p)
+
+    return cont_outputs, cat_outputs
+
+
+# TODO click and select event callback for categorical scatter
 
 
 @callback(

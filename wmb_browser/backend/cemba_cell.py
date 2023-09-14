@@ -13,6 +13,21 @@ from .genome import mm10
 from .utilities import *
 
 
+CELL_META_CLIP_INFO = """
+**Cell ID**: {CellID} ({Technology})
+
+**Brain Sample**:
+- **Anatomy**: {MajorRegion} | {SubRegion} | {DissectionRegion}
+- **Slice & Dissection ID**: Slice {Slice} | {CEMBARegion} | {Sample}
+- **CCF**: {CCF_broad} | {CCF_acronym}
+
+**Cell Annotation**:
+- **Cell Class**: {CellClass}
+- **Cell SubClass**: {CellSubClass}
+- **Cell Group**: {CellGroup}
+"""
+
+
 def _get_x_y_lim(df, coord, delta=0, sync=True):
     xmin, xmax = df[f"{coord}_0"].quantile([delta, 1 - delta]).values
     ymin, ymax = df[f"{coord}_1"].quantile([delta, 1 - delta]).values
@@ -63,12 +78,41 @@ class CEMBAsnmCCells(Dataset):
         self._default_graph_config = {
             "scrollZoom": True,
             "displaylogo": False,
+            "modeBarButtonsToRemove": ["select", "select2d", "autoScale"],
             "toImageButtonOptions": {
                 "format": "png",  # one of png, svg, jpeg, webp
                 "filename": "custom_image",
                 "scale": 4,  # Multiply title/legend/axis/canvas sizes by this factor
             },
         }
+
+    def get_cell_metadata_markdown(self, cell_int_id):
+        cell_id = self._int_id_to_original_id[cell_int_id]
+        use_meta_names = [
+            "CEMBARegion",
+            "CellClass",
+            "CellSubClass",
+            "CellGroup",
+            "MajorRegion",
+            "SubRegion",
+            "DissectionRegion",
+            "Slice",
+            "Sample",
+            "Technology",
+            "CCF_broad",
+            "CCF_acronym",
+        ]
+        meta_dict = {k: self.get_metadata(k).loc[cell_id] for k in use_meta_names}
+        meta_dict["CellID"] = cell_id
+
+        card = dbc.Card(
+            [
+                dbc.CardHeader(meta_dict['CellSubClass']),
+                dbc.CardBody([dcc.Markdown(CELL_META_CLIP_INFO.format(**meta_dict), className='small m-0')]),
+            ],
+            className="mt-3",
+        )
+        return card
 
     @staticmethod
     def _to_gene_id(name):
@@ -141,13 +185,15 @@ class CEMBAsnmCCells(Dataset):
             x=f"{coord}_0",
             y=f"{coord}_1",
             color=color,
+            custom_data=[plot_data.index.astype("uint32")],
             hover_data=None,
             color_continuous_scale="viridis",
             range_color=color_range,
         )
 
         if marker_size == "auto":
-            marker_size = auto_size(plot_data.shape[0])
+            _scale = 1.5 if "merfish" in coord else 3
+            marker_size = auto_size(plot_data.shape[0], scale=_scale)
         else:
             marker_size = float(marker_size)
 
@@ -168,8 +214,11 @@ class CEMBAsnmCCells(Dataset):
     @staticmethod
     def _get_color_range_by_color(color, color_range, max_color_range):
         if color_range == "auto":
-            if color.startswith("gene_mc"):
+            if color.startswith("gene_mch"):
                 color_range = (0.7, 1.5)
+                max_color_range = (0, 4.5)
+            elif color.startswith("gene_mcg"):
+                color_range = (0.5, 0.9)
                 max_color_range = (0, 4.5)
             elif color.startswith("gene_rna"):
                 color_range = (1.5, 6)
@@ -253,6 +302,7 @@ class CEMBAsnmCCells(Dataset):
             y=f"{coord}_1",
             color=color,
             hover_data=None,
+            custom_data=[plot_data.index.astype("uint32")],
             color_discrete_map=palette,
         )
 
@@ -380,7 +430,7 @@ class CEMBAsnmCCells(Dataset):
                 dbc.Col(
                     dcc.Dropdown(
                         id={"index": index, "type": "coord_input"},
-                        options=[{"label": c, "value": c} for c in self.coords],
+                        options=[{"label": c, "value": c} for c in sorted(self.coords)],
                         value=coord,
                     ),
                     className="me-3",

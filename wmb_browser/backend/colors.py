@@ -5,6 +5,8 @@ _palette_alias = {
     "cellsubclass": "subclass",
     "dissection_region": "cemba_dissection_region",
     "dissectionregion": "cemba_dissection_region",
+    "ccf_acronym": "ccf",
+    "ccf_broad": "ccf",
 }
 
 

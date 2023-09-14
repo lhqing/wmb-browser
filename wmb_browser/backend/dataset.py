@@ -187,7 +187,7 @@ class Dataset:
         pd.DataFrame
         """
         try:
-            return self._coords[name].copy()
+            return self._coords[name]
         except KeyError:
             raise KeyError(f"Coordinates '{name}' not found.")
 
@@ -204,7 +204,7 @@ class Dataset:
         pd.Series
         """
         try:
-            return self._metadata[name].copy()
+            return self._metadata[name]
         except KeyError:
             raise KeyError(f"Metadata '{name}' not found.")
 
@@ -263,4 +263,7 @@ class Dataset:
 
         if sample is not None and plot_data.shape[0] > sample:
             plot_data = plot_data.sample(sample, random_state=0)
+
+        # change index to int ids
+        plot_data.index = plot_data.index.map(self._original_id_to_int_id)
         return plot_data
