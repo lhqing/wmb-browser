@@ -4,7 +4,7 @@ from _app import APP_ROOT_NAME, app, server
 from dash import callback, dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-
+from wmb_browser.apps.home import home_layout
 from wmb_browser.apps.dynamic_browser import create_dynamic_browser_layout
 
 LOGO_IMG_URL = (
@@ -20,6 +20,7 @@ def get_header():
             dbc.Nav(
                 [
                     dbc.NavItem(dbc.NavLink("Home", href=f"/{APP_ROOT_NAME}home")),
+                    dbc.NavItem(dbc.NavLink("Dynamic Browser", href=f"/{APP_ROOT_NAME}dynamic_browser")),
                 ],
                 className="mr-5",
                 navbar=True,
@@ -70,15 +71,14 @@ app.layout = html.Div(
 def display_page(pathname, search, total_url):
     """Routing control."""
     app_layout = []
-    # search_dict = search_to_dict(search)
-
     if pathname is None:
         # init callback url is None
         raise PreventUpdate
     elif (pathname == f"/{APP_ROOT_NAME}home") or (pathname == f"/{APP_ROOT_NAME}"):
-        layout = []  # home_layout
+        
+        layout = home_layout
     elif pathname == f"/{APP_ROOT_NAME}dynamic_browser":
-        layout = create_dynamic_browser_layout()
+        layout = create_dynamic_browser_layout(search)
     # add layout functions here based on pathname
     # elif pathname == f"/{APP_ROOT_NAME}app1":
     #     layout = app1_layout(search_dict)
