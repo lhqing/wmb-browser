@@ -9,6 +9,7 @@ resources:
   disk_size: 128
   ports: 
     - 80
+    - 8000
     - 443
     - 8989
 

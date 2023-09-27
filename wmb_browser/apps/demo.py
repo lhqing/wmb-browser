@@ -1,6 +1,5 @@
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 from dash.dependencies import Input, Output
 import plotly.express as px
 import pandas as pd
@@ -33,6 +32,7 @@ app.layout = html.Div([
 def update_hover(data):
     return data
 
+server = app.server
 
 if __name__ == "__main__":
     app.run(debug=True, port=1234)
