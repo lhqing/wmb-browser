@@ -13,6 +13,32 @@ from .genome import mm10
 from .utilities import *
 
 
+CELL_META_CLIP_INFO = """
+**Cell ID**: {CellID} ({Technology})
+
+**Brain Sample**:
+- **Anatomy**: {MajorRegion} | {SubRegion} | {DissectionRegion}
+- **Slice & Dissection ID**: Slice {Slice} | {CEMBARegion} | {Sample}
+- **CCF**: {CCF_broad} | {CCF_acronym}
+
+**Cell Annotation**:
+- **Cell Class**: {CellClass}
+- **Cell SubClass**: {CellSubClass}
+- **Cell Group**: {CellGroup}
+"""
+
+
+def _get_x_y_lim(df, coord, delta=0, sync=True):
+    xmin, xmax = df[f"{coord}_0"].quantile([delta, 1 - delta]).values
+    ymin, ymax = df[f"{coord}_1"].quantile([delta, 1 - delta]).values
+    if sync:
+        xmin = min(xmin, ymin)
+        xmax = max(xmax, ymax)
+        ymin = xmin
+        ymax = xmax
+    return xmin, xmax, ymin, ymax
+
+
 class CEMBAsnmCCells(Dataset):
     def __init__(self) -> None:
         name = "cemba_snmc_cells"
@@ -20,6 +46,7 @@ class CEMBAsnmCCells(Dataset):
         metadata_path = "/browser/metadata/CEMBA_snmC.cell_metadata.pickle"
         coords_path = "/browser/metadata/CEMBA_snmC.cell_coords.lib"
         cell_by_gene_mc_frac_zarr_path = "/cemba/wmb/GeneChunks/CEMBA.snmC/"
+        cell_group_by_gene_rna_zarr_path = "/browser/matrix/CEMBA.snmC.L4Region.AIBS_TENX.log1pCPM.zarr"
 
         cell_meta = pd.read_pickle(metadata_path)
 
@@ -33,7 +60,7 @@ class CEMBAsnmCCells(Dataset):
         for name, coord_df in coords.items():
             self.add_coords(name, coord_df)
 
-        # add gene matrices
+        # add cell-by-gene matrices
         ds = xr.open_zarr(cell_by_gene_mc_frac_zarr_path)
         ds = ds.rename({"geneslop2k-vm23": "gene"})
         gene_mch_frac_da = ds["geneslop2k-vm23_da_frac_fc"].sel(mc_type="CHN")
@@ -41,8 +68,51 @@ class CEMBAsnmCCells(Dataset):
         self.add_var_matrix("gene_mch", gene_mch_frac_da, var_dim="gene")
         self.add_var_matrix("gene_mcg", gene_mcg_frac_da, var_dim="gene")
 
+        # add cell-group-by-gene matrices
+        ds = xr.open_zarr(cell_group_by_gene_rna_zarr_path)
+        rna_da = ds["rna_da"]
+        self.add_var_matrix("gene_rna", rna_da, var_dim="gene", obs_dim="CellGroup")
+
         # plot default
         self._graph_style = {"height": "70vh", "width": "auto"}
+        self._default_graph_config = {
+            "scrollZoom": True,
+            "displaylogo": False,
+            "modeBarButtonsToRemove": ["select", "select2d", "autoScale"],
+            "toImageButtonOptions": {
+                "format": "png",  # one of png, svg, jpeg, webp
+                "filename": "custom_image",
+                "scale": 4,  # Multiply title/legend/axis/canvas sizes by this factor
+            },
+        }
+
+    def get_cell_metadata_markdown(self, cell_int_id):
+        cell_id = self._int_id_to_original_id[cell_int_id]
+        use_meta_names = [
+            "CEMBARegion",
+            "CellClass",
+            "CellSubClass",
+            "CellGroup",
+            "MajorRegion",
+            "SubRegion",
+            "DissectionRegion",
+            "Slice",
+            "Sample",
+            "Technology",
+            "CCF_broad",
+            "CCF_acronym",
+        ]
+        meta_dict = {k: self.get_metadata(k).loc[cell_id] for k in use_meta_names}
+        meta_dict["CellID"] = cell_id
+
+        card = dbc.Card(
+            [
+                dbc.CardHeader(meta_dict['CellSubClass']),
+                dbc.CardBody([dcc.Markdown(CELL_META_CLIP_INFO.format(**meta_dict), className='small m-0')]),
+            ],
+            className="mt-3",
+        )
+        return card
 
     @staticmethod
     def _to_gene_id(name):
@@ -85,10 +155,12 @@ class CEMBAsnmCCells(Dataset):
                         gene_id = self._to_gene_id(var[0])
                         var_dict[dataset] = gene_id
                         rename_dict[f"{dataset}:{gene_id}"] = arg
+
         if len(metadata) == 0:
             metadata = None
         if len(var_dict) == 0:
             var_dict = None
+
         _df = super().get_plot_data(coord, metadata, var_dict, use_obs, missing_value, sample)
         _df = _df.rename(columns=rename_dict)
         return _df
@@ -102,6 +174,7 @@ class CEMBAsnmCCells(Dataset):
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             plot_bgcolor="white",
             paper_bgcolor="white",
+            dragmode="pan",
         )
 
     def continuous_scatter_figure(self, coord, color, color_range, marker_size="auto", sample=50000):
@@ -112,24 +185,61 @@ class CEMBAsnmCCells(Dataset):
             x=f"{coord}_0",
             y=f"{coord}_1",
             color=color,
+            custom_data=[plot_data.index.astype("uint32")],
             hover_data=None,
             color_continuous_scale="viridis",
             range_color=color_range,
         )
 
         if marker_size == "auto":
-            marker_size = auto_size(plot_data.shape[0])
+            _scale = 1.5 if "merfish" in coord else 3
+            marker_size = auto_size(plot_data.shape[0], scale=_scale)
         else:
             marker_size = float(marker_size)
 
-        fig.update_traces(marker=dict(size=marker_size))
-        fig.update_layout(coloraxis_colorbar=dict(thickness=10, len=0.2, y=0.5, title=None))
+        fig.update_traces(marker=dict(size=marker_size), hovertemplate=f"{color}=%{{marker.color:.2f}}<extra></extra>")
+        if "merfish" in coord:
+            xmin, xmax, ymin, ymax = _get_x_y_lim(plot_data, coord)
+        else:
+            xmin, xmax, ymin, ymax = _get_x_y_lim(plot_data, coord, delta=0)
+        fig.update_layout(
+            coloraxis_colorbar=dict(thickness=10, len=0.2, y=0.5, title=None),
+            xaxis=dict(range=[xmin, xmax]),
+            yaxis=dict(range=[ymin, ymax]),
+        ),
         self._common_fig_layout(fig)
 
         return fig
 
+    @staticmethod
+    def _get_color_range_by_color(color, color_range, max_color_range):
+        if color_range == "auto":
+            if color.startswith("gene_mch"):
+                color_range = (0.7, 1.5)
+                max_color_range = (0, 4.5)
+            elif color.startswith("gene_mcg"):
+                color_range = (0.5, 0.9)
+                max_color_range = (0, 4.5)
+            elif color.startswith("gene_rna"):
+                color_range = (1.5, 6)
+                max_color_range = (0, 12)
+            else:
+                color_range = (1, 3)
+                max_color_range = (0, 12)
+        else:
+            if max_color_range == "auto":
+                vmin, vmax = color_range
+                max_color_range = (vmin / 3, vmax * 3)
+        return color_range, max_color_range
+
     def continuous_scatter(
-        self, index: Union[str, int], coord: str, color: str, sample: int = 50000
+        self,
+        index: Union[str, int],
+        coord: str,
+        color: str,
+        sample: int = 50000,
+        color_range="auto",
+        max_color_range="auto",
     ) -> Tuple[dcc.Graph, dbc.Form]:
         """
         Making a scatter plot color by an continuous variable with pre-computed coordinates.
@@ -144,6 +254,10 @@ class CEMBAsnmCCells(Dataset):
             The name of the continuous variable to be used for coloring the scatter plot.
         sample
             The number of cells to be sampled for plotting. If set to None, all cells will be used.
+        color_range
+            The range of the color bar.
+        max_color_range
+            The min and max range of the color control slider.
 
         Returns
         -------
@@ -153,7 +267,8 @@ class CEMBAsnmCCells(Dataset):
             The control panel for the scatter plot.
         """
         sample = int(sample)
-        color_range = (0.7, 1.5)
+
+        color_range, max_color_range = self._get_color_range_by_color(color, color_range, max_color_range)
 
         fig = self.continuous_scatter_figure(coord, color, color_range, sample=sample)
 
@@ -161,6 +276,7 @@ class CEMBAsnmCCells(Dataset):
             id={"index": index, "type": "continuous_scatter-graph"},
             figure=fig,
             style=self._graph_style,
+            config=self._default_graph_config,
         )
 
         graph_control = self._scatter_control(
@@ -170,6 +286,7 @@ class CEMBAsnmCCells(Dataset):
             color=color,
             sample=sample,
             color_range=color_range,
+            max_color_range=max_color_range,
         )
         return graph, graph_control
 
@@ -185,15 +302,30 @@ class CEMBAsnmCCells(Dataset):
             y=f"{coord}_1",
             color=color,
             hover_data=None,
+            custom_data=[plot_data.index.astype("uint32")],
             color_discrete_map=palette,
         )
 
         if marker_size == "auto":
-            marker_size = auto_size(plot_data.shape[0])
+            _scale = 1.5 if "merfish" in coord else 3
+            marker_size = auto_size(plot_data.shape[0], scale=_scale)
         else:
             marker_size = float(marker_size)
 
-        fig.update_traces(marker=dict(size=marker_size), showlegend=False)
+        if "merfish" in coord:
+            xmin, xmax, ymin, ymax = _get_x_y_lim(plot_data, coord)
+        else:
+            xmin, xmax, ymin, ymax = _get_x_y_lim(plot_data, coord, delta=0)
+
+        fig.update_traces(
+            marker=dict(size=marker_size),
+            showlegend=False,
+            # hovertemplate=f'{color}=%{{marker.color:.2f}}<extra></extra>'
+        )
+        fig.update_layout(
+            xaxis=dict(range=[xmin, xmax]),
+            yaxis=dict(range=[ymin, ymax]),
+        )
         self._common_fig_layout(fig)
         return fig
 
@@ -229,6 +361,7 @@ class CEMBAsnmCCells(Dataset):
             id={"index": index, "type": "categorical_scatter-graph"},
             figure=fig,
             style=self._graph_style,
+            config=self._default_graph_config,
         )
 
         graph_control = self._scatter_control(
@@ -297,7 +430,7 @@ class CEMBAsnmCCells(Dataset):
                 dbc.Col(
                     dcc.Dropdown(
                         id={"index": index, "type": "coord_input"},
-                        options=[{"label": c, "value": c} for c in self.coords],
+                        options=[{"label": c, "value": c} for c in sorted(self.coords)],
                         value=coord,
                     ),
                     className="me-3",
@@ -338,7 +471,17 @@ class CEMBAsnmCCells(Dataset):
             n_clicks=0,
         )
 
-        form = dbc.Form([color_control, coord_control, sample_control, update_button])
+        # delete figure button
+        delete_button = dbc.Button(
+            "Delete",
+            id={"index": index, "type": "delete-figure-btn"},
+            outline=True,
+            color="danger",
+            n_clicks=0,
+            class_name="m-3",
+        )
+
+        form = dbc.Form([color_control, coord_control, sample_control, update_button, delete_button])
         return form
 
 

@@ -29,7 +29,7 @@ class Dataset:
         return
 
     def add_var_matrix(
-        self, name: str, var_matrix: xr.DataArray, var_dim: str, load: bool = False, dtype: str = None
+        self, name: str, var_matrix: xr.DataArray, var_dim: str, obs_dim=None, load: bool = False, dtype: str = None
     ) -> None:
         """
         Add an obj-by-var 2D matrix to the dataset.
@@ -50,8 +50,12 @@ class Dataset:
             raise ValueError(f"Feature set '{name}' already exists.")
         if name in _RESERVED_KEYS:
             raise ValueError(f"Feature set name '{name}' is reserved.")
+        if obs_dim is None:
+            obs_dim = self.obs_dim
+        else:
+            assert obs_dim in self.metadata_names
 
-        if var_matrix.dims != (self.obs_dim, var_dim):
+        if var_matrix.dims != (obs_dim, var_dim):
             raise ValueError(f"Dimensions of feature set '{name}' do not match.")
 
         if dtype is not None and var_matrix.dtype != dtype:
@@ -60,10 +64,13 @@ class Dataset:
         if load:
             var_matrix.load()
 
-        var_matrix = var_matrix.rename({self.obs_dim: "obs", var_dim: "var"})
+        var_matrix=var_matrix.rename({var_dim: "var"})
+        if obs_dim == self.obs_dim:
+            var_matrix=var_matrix.rename({obs_dim: "obs"})
 
         self._var_matrices[name] = var_matrix
         return
+
 
     def add_metadata(self, metadata: pd.Series):
         """
@@ -161,6 +168,9 @@ class Dataset:
         except KeyError:
             raise KeyError(f"Variable '{var_name}' not found in feature set '{set_name}'.")
 
+        if _data.index.name not in {self.obs_dim, 'obs'}:
+            # map data to cell level
+            _data = self.get_metadata(_data.index.name).map(_data)
         return _data
 
     def get_coords(self, name: str) -> pd.DataFrame:
@@ -176,7 +186,7 @@ class Dataset:
         pd.DataFrame
         """
         try:
-            return self._coords[name].copy()
+            return self._coords[name]
         except KeyError:
             raise KeyError(f"Coordinates '{name}' not found.")
 
@@ -193,7 +203,7 @@ class Dataset:
         pd.Series
         """
         try:
-            return self._metadata[name].copy()
+            return self._metadata[name]
         except KeyError:
             raise KeyError(f"Metadata '{name}' not found.")
 
@@ -252,4 +262,7 @@ class Dataset:
 
         if sample is not None and plot_data.shape[0] > sample:
             plot_data = plot_data.sample(sample, random_state=0)
+
+        # change index to int ids
+        plot_data.index = plot_data.index.map(self._original_id_to_int_id)
         return plot_data

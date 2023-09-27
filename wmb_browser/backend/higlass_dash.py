@@ -43,8 +43,6 @@ class HiglassDash(HiglassBrowser):
         default_kwargs = {k: v.default for k, v in inspect.signature(viewconf_func).parameters.items()}
         kwargs = {**default_kwargs, **kwargs}
 
-        print(kwargs)
-
         # cell types multi-select
         cell_types = kwargs.get("cell_types", "")
         cell_types = string_to_list(cell_types)
@@ -58,7 +56,7 @@ class HiglassDash(HiglassBrowser):
                         multi=True,
                     )
                 ),
-            ]
+            ], class_name='mb-3 mt-3'
         )
         # modality 2d single select
         modality_2d = kwargs.get("modality_2d", None)
@@ -75,7 +73,7 @@ class HiglassDash(HiglassBrowser):
                         multi=False,
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
 
         # modality 1d multi-select
@@ -93,7 +91,7 @@ class HiglassDash(HiglassBrowser):
                         multi=True,
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
         # region1 text input
         region1 = kwargs.get("region1", None)
@@ -107,7 +105,7 @@ class HiglassDash(HiglassBrowser):
                         type="text",
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
         # region2 text input
         region2 = kwargs.get("region2", None)
@@ -121,7 +119,7 @@ class HiglassDash(HiglassBrowser):
                         type="text",
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
 
         # final update button
@@ -131,6 +129,7 @@ class HiglassDash(HiglassBrowser):
             outline=True,
             color="primary",
             n_clicks=0,
+            class_name='m-3',
         )
 
         # put all control components into a form
@@ -167,7 +166,7 @@ class HiglassDash(HiglassBrowser):
                         multi=True,
                     )
                 ),
-            ]
+            ], class_name='mb-3 mt-3'
         )
 
         # modalities multi-select
@@ -186,7 +185,7 @@ class HiglassDash(HiglassBrowser):
                         multi=True,
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
 
         # text input for region
@@ -201,7 +200,7 @@ class HiglassDash(HiglassBrowser):
                         type="text",
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
         # select for track colorby
         kwargs.get("colorby", None)
@@ -218,7 +217,7 @@ class HiglassDash(HiglassBrowser):
                         id={"index": index, "type": f"{layout_name}-colorby-sel"},
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
         # select for track groupby
         kwargs.get("groupby", None)
@@ -235,7 +234,7 @@ class HiglassDash(HiglassBrowser):
                         id={"index": index, "type": f"{layout_name}-groupby-sel"},
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
         # final update button
         update_button = dbc.Button(
@@ -244,6 +243,7 @@ class HiglassDash(HiglassBrowser):
             outline=True,
             color="primary",
             n_clicks=0,
+            class_name='m-3',
         )
         # put all control components into a form
         form = dbc.Form(
@@ -278,7 +278,7 @@ class HiglassDash(HiglassBrowser):
                         multi=False,
                     )
                 ),
-            ]
+            ], class_name='mb-3 mt-3'
         )
 
         # cell type 2 single select
@@ -293,7 +293,7 @@ class HiglassDash(HiglassBrowser):
                         multi=False,
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
 
         # modality 2d single select
@@ -311,7 +311,7 @@ class HiglassDash(HiglassBrowser):
                         multi=False,
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
 
         # modality 1d multi-select
@@ -329,7 +329,7 @@ class HiglassDash(HiglassBrowser):
                         multi=True,
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
         # region1 text input
         region1 = kwargs.get("region1", None)
@@ -343,7 +343,7 @@ class HiglassDash(HiglassBrowser):
                         type="text",
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
         # region2 text input
         region2 = kwargs.get("region2", None)
@@ -357,7 +357,7 @@ class HiglassDash(HiglassBrowser):
                         type="text",
                     )
                 ),
-            ]
+            ], class_name='mb-3'
         )
 
         # final update button
@@ -367,6 +367,7 @@ class HiglassDash(HiglassBrowser):
             outline=True,
             color="primary",
             n_clicks=0,
+            class_name='m-3',
         )
 
         # put all control components into a form
@@ -403,7 +404,8 @@ class HiglassDash(HiglassBrowser):
                         multi=False,
                     )
                 ),
-            ]
+            ],
+            class_name='mb-3 mt-3'
         )
 
         # modality 2d single select
@@ -421,7 +423,8 @@ class HiglassDash(HiglassBrowser):
                         multi=False,
                     )
                 ),
-            ]
+            ],
+            class_name='mb-3'
         )
 
         # modality 1d multi-select
@@ -439,7 +442,8 @@ class HiglassDash(HiglassBrowser):
                         multi=True,
                     )
                 ),
-            ]
+            ],
+            class_name='mb-3'
         )
         # region1 text input
         region1 = kwargs.get("region1", None)
@@ -453,7 +457,8 @@ class HiglassDash(HiglassBrowser):
                         type="text",
                     )
                 ),
-            ]
+            ],
+            class_name='mb-3'
         )
         # region2 text input
         region2 = kwargs.get("region2", None)
@@ -467,7 +472,8 @@ class HiglassDash(HiglassBrowser):
                         type="text",
                     )
                 ),
-            ]
+            ],
+            class_name='mb-3'
         )
         # zoom region1 text input
         zoom_region1 = kwargs.get("zoom_region1", None)
@@ -481,7 +487,8 @@ class HiglassDash(HiglassBrowser):
                         type="text",
                     )
                 ),
-            ]
+            ],
+            class_name='mb-3'
         )
         # zoom region2 text input
         zoom_region2 = kwargs.get("zoom_region2", None)
@@ -495,7 +502,8 @@ class HiglassDash(HiglassBrowser):
                         type="text",
                     )
                 ),
-            ]
+            ],
+            class_name='mb-3'
         )
 
         # final update button
@@ -505,6 +513,7 @@ class HiglassDash(HiglassBrowser):
             outline=True,
             color="primary",
             n_clicks=0,
+            class_name='m-3',
         )
 
         # put all control components into a form
@@ -519,13 +528,24 @@ class HiglassDash(HiglassBrowser):
                 zoom_region2_control,
                 update_button,
             ],
-            className="col-12",
+            className="col-6",
         )
         return form
 
     def get_higlass_and_control(self, index, layout, *args, **kwargs):
         iframe = self._get_iframe(index, layout, *args, **kwargs)
         control_form = self._get_layout_control_form(index, layout, *args, **kwargs)
+
+        # add delete button
+        delete_button = dbc.Button(
+            "Delete",
+            id={"index": index, "type": "delete-figure-btn"},
+            outline=True,
+            color="danger",
+            n_clicks=0,
+            class_name='m-3',
+        )
+        control_form.children.append(delete_button)
         return (iframe, control_form)
 
 
