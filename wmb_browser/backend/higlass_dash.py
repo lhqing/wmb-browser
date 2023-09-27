@@ -1,7 +1,9 @@
-from .higlass import HiglassBrowser, string_to_list
+import inspect
+
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-import inspect
+
+from .higlass import HiglassBrowser, string_to_list
 
 
 class HiglassDash(HiglassBrowser):
@@ -201,7 +203,7 @@ class HiglassDash(HiglassBrowser):
             ], class_name='mb-3'
         )
         # select for track colorby
-        colorby = kwargs.get("colorby", None)
+        kwargs.get("colorby", None)
         colorby_control = dbc.Row(
             [
                 dbc.Label("Colorby", width="auto"),
@@ -218,7 +220,7 @@ class HiglassDash(HiglassBrowser):
             ], class_name='mb-3'
         )
         # select for track groupby
-        groupby = kwargs.get("groupby", None)
+        kwargs.get("groupby", None)
         groupby_control = dbc.Row(
             [
                 dbc.Label("Groupby", width="auto"),

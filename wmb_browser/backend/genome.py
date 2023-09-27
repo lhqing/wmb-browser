@@ -32,14 +32,14 @@ class MM10GenomeRef:
         df = self.get_gene_metadata().reset_index()
         df = df[["chrom", "start", "end", "gene_id", "strand"]].copy()
         return df
-    
+
     def get_gene_region(self, gene):
         if gene.startswith("ENSMUSG"):
             gene_id = gene
         else:
             gene_id = self.gene_name_to_id(gene)
         chrom, start, end = self.get_gene_metadata().loc[gene_id, ["chrom", "start", "end"]]
-        return f'{chrom}:{start}-{end}'
+        return f"{chrom}:{start}-{end}"
 
     def _get_gene_id_name_dict(self):
         self._gene_id_to_name = self.get_gene_metadata()["gene_name"].to_dict()

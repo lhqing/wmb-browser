@@ -6,6 +6,7 @@ import higlass
 import numpy as np
 import pandas as pd
 from higlass.api import display, gather_plugin_urls
+
 from .colors import color_collection
 from .genome import mm10
 
@@ -132,7 +133,7 @@ class HiglassBrowser:
 
         return [chrom_size, gene]
 
-    def _region_to_global_coord(self, region, extend_fold=0.5, min_extend_length = 500000):
+    def _region_to_global_coord(self, region, extend_fold=0.5, min_extend_length=500000):
         """
         Turn a region string into global number coordinates
 
@@ -150,7 +151,7 @@ class HiglassBrowser:
         global_start, global_end
             Global coordinates
         """
-        if not re.search('.+(:|-|,)\d+(:|-|,)\d+', region):
+        if not re.search(".+(:|-|,)\d+(:|-|,)\d+", region):
             region = mm10.get_gene_region(region)
         chrom, _, start, _, end = re.split("(:|-|,)", region.replace(" ", ""))
 
@@ -292,7 +293,6 @@ class HiglassBrowser:
             view_lock = higlass.lock(*views)
             locks.append(view_lock)
 
-            
             # Lock value scale
             v0 = views[0]
             pos_attrs = ["center", "top", "bottom", "left", "right"]
@@ -311,7 +311,7 @@ class HiglassBrowser:
             max_cols = 4
             row_viewconf_list = []
             for row_start in range(0, len(views), max_cols):
-                row_views = views[row_start:row_start+max_cols]
+                row_views = views[row_start : row_start + max_cols]
                 row_viewconf = row_views[0].viewconf()
                 for view in row_views[1:]:
                     row_viewconf = row_viewconf | view.viewconf()
