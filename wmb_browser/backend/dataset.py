@@ -3,7 +3,6 @@ from typing import Union
 import pandas as pd
 import xarray as xr
 
-
 _RESERVED_KEYS = {"metadata", "coords"}
 
 
