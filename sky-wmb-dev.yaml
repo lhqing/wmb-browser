@@ -7,7 +7,10 @@ resources:
   instance_type: n2d-highmem-16
   region: us-west1
   disk_size: 128
-  ports: 80, 443, 8989
+  ports: 
+    - 80
+    - 443
+    - 8989
 
 file_mounts:
   /cemba:
