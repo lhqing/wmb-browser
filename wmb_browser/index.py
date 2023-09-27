@@ -95,3 +95,7 @@ def display_page(pathname, search, total_url):
 
 if __name__ == "__main__":
     app.run(debug=True, port="1234")
+
+
+# pip install gunicorn
+# gunicorn -w 4 myapp:app
