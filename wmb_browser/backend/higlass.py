@@ -34,12 +34,12 @@ MODALITY_PALETTE = {
 GENOME_TILESETS = {
     "mm10_chrom_size": higlass.remote(
         uid="EtrWT0VtScixmsmwFSd7zg",
-        server="http://higlass.io/api/v1",
+        server="https://higlass.io/api/v1",
         name="mm10 Chrom Sizes",
     ),
     "mm10_gene_annot": higlass.remote(
         uid="QDutvmyiSrec5nX4pA5WGQ",
-        server="http://higlass.io/api/v1",
+        server="https://higlass.io/api/v1",
         name="mm10 Gene Annotations",
     ),
 }
@@ -608,15 +608,15 @@ class HiglassBrowser:
             viewconf = viewconf.viewconf()
 
         view_dict = viewconf.dict()
-        view_dict["trackSourceServers"] = [self.server, "http://higlass.io/api/v1"]
-        # view_dict["trackSourceServers"] = ["/api/v1", "http://higlass.io/api/v1"]
+        view_dict["trackSourceServers"] = [self.server, "https://higlass.io/api/v1"]
+        # view_dict["trackSourceServers"] = ["/api/v1", "https://higlass.io/api/v1"]
         for _v in view_dict["views"]:
             if self.toggle_position_search_box:
                 # toggle position search box, change is inplace
                 _v["genomePositionSearchBoxVisible"] = True
                 _v["genomePositionSearchBox"] = {
-                    "autocompleteServer": "http://higlass.io/api/v1",
-                    "chromInfoServer": "http://higlass.io/api/v1",
+                    "autocompleteServer": "https://higlass.io/api/v1",
+                    "chromInfoServer": "https://higlass.io/api/v1",
                     "visible": True,
                     "chromInfoId": "mm10",
                 }

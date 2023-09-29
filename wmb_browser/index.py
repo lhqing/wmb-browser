@@ -75,7 +75,6 @@ def display_page(pathname, search, total_url):
         # init callback url is None
         raise PreventUpdate
     elif (pathname == f"/{APP_ROOT_NAME}home") or (pathname == f"/{APP_ROOT_NAME}"):
-        
         layout = home_layout
     elif pathname == f"/{APP_ROOT_NAME}dynamic_browser":
         layout = create_dynamic_browser_layout(search)
@@ -95,7 +94,6 @@ def display_page(pathname, search, total_url):
 
 if __name__ == "__main__":
     app.run(debug=True, port="1234")
-
 
 # pip install gunicorn
 # gunicorn -w 4 -b 127.0.0.1:8000 myapp:server

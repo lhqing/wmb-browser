@@ -3,6 +3,7 @@ from dash import MATCH, Input, Output, Patch, State, callback, html, callback_co
 from dash.exceptions import PreventUpdate
 import base64
 from wmb_browser.backend import *
+import re
 
 MAX_FIGURE_NUM = 8
 
@@ -287,6 +288,12 @@ input_card = dbc.Card(
 
 
 def _string_to_args_and_kwargs(string):
+
+    # convert "%20" to " " using regex
+    print(string)
+    string = re.sub(r"%20", " ", string)
+    print(string)
+
     string = string.strip(" ?,")
     args = []
     kwargs = {}
