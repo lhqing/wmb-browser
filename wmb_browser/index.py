@@ -98,4 +98,4 @@ if __name__ == "__main__":
 
 
 # pip install gunicorn
-# gunicorn -w 4 myapp:app
+# gunicorn -w 4 -b 127.0.0.1:8000 myapp:server

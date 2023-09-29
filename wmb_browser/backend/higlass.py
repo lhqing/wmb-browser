@@ -609,6 +609,7 @@ class HiglassBrowser:
 
         view_dict = viewconf.dict()
         view_dict["trackSourceServers"] = [self.server, "http://higlass.io/api/v1"]
+        # view_dict["trackSourceServers"] = ["/api/v1", "http://higlass.io/api/v1"]
         for _v in view_dict["views"]:
             if self.toggle_position_search_box:
                 # toggle position search box, change is inplace

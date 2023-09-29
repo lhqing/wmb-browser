@@ -550,6 +550,6 @@ class HiglassDash(HiglassBrowser):
 
 
 # TODO write a func to auto detect server in debug or production mode
-server = "http://localhost:8989/api/v1"
+server = "http://mousebrain.bio:8989/api/v1"
 
 higlass = HiglassDash(server=server)
