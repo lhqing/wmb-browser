@@ -31,7 +31,7 @@ server {
 
 server {
     server_name mousebrain.bio;
-    listen 8989 ssl;
+    listen 8001 ssl;
 
     ssl_certificate /etc/letsencrypt/live/mousebrain.bio/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/mousebrain.bio/privkey.pem;
