@@ -54,10 +54,14 @@ setup: |
     mamba install -y dash xarray dask zarr
 
     # setup higlass
+    # higlass uses localhost:8989 we later use nginx to proxy it to 8001
     sudo docker pull higlass/higlass-docker:latest
-    sudo docker run --detach --publish 8989:80 --volume ~/hg-data:/data --volume ~/tmp:/tmp --volume /browser:/browser --volume /cemba:/cemba --name higlass-container -e "SITE_URL=mousebrain.salk.edu:8989" higlass/higlass-docker:latest
+    sudo docker run --detach --publish 8989:80 --volume ~/hg-data:/data --volume ~/tmp:/tmp --volume /browser:/browser --volume /cemba:/cemba --name higlass-container -e "SITE_URL=mousebrain.salk.edu:8001" higlass/higlass-docker:latest
     sudo docker exec higlass-container rm -rf /data/media
     sudo docker exec higlass-container ln -s /browser /data/media
+
+    # ingest data to higlass with the ingest notebook
+    # jupyter nbconvert --to notebook --execute /cemba/higlass/notebooks/ingest_higlass.ipynb
 
     # setup jupyter
     mamba install -y jupyterlab
@@ -67,9 +71,6 @@ setup: |
 
     # setup dash
     pip install dash-bootstrap-components
-
-    # ingest data to higlass with the ingest notebook
-    # jupyter nbconvert --to notebook --execute /cemba/higlass/notebooks/ingest_higlass.ipynb
   fi
 
 run: |
