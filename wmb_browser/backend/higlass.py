@@ -21,6 +21,7 @@ MODALITY_PALETTE = {
     "ATAC CPM": {"barFillColor": "#EF7D1A"},
     "mCH Frac": {"barFillColor": "#16499D"},
     "mCG Frac": {"barFillColor": "#36AE37"},
+    "SMART CPM": {"barFillColor": "#7D4195"},
     "Domain Boundary": {"barFillColor": "#E71F19"},
     "Compartment Score": {
         "barFillColorTop": "#E71F19",
@@ -88,7 +89,7 @@ class HiglassBrowser:
         show_mouse_position=True,
         toggle_position_search_box=True,
         default_modality_2d="Impute 10K",
-        default_modality_1d=("mCH Frac", "mCG Frac", "ATAC CPM"),
+        default_modality_1d=("mCH Frac", "mCG Frac", "ATAC CPM", "SMART CPM"),
     ):
         self.server = server
 
@@ -108,7 +109,7 @@ class HiglassBrowser:
         self.subclass_list = self.track_table["CellSubClass"].dropna().unique().tolist()
         self.chrom_sizes = pd.read_csv(CHROM_SIZES_PATH, index_col=0, sep="\t", header=None).squeeze()
 
-        self.all_modality_1d = ["ATAC CPM", "mCH Frac", "mCG Frac", "Domain Boundary", "Compartment Score"]
+        self.all_modality_1d = ["ATAC CPM", "SMART CPM", "mCH Frac", "mCG Frac", "Domain Boundary", "Compartment Score"]
         self.all_modality_2d = ["Impute 100K", "Impute 10K", "Raw 100K"]
         self.modality_list = self.all_modality_1d + self.all_modality_2d
 
@@ -173,6 +174,14 @@ class HiglassBrowser:
         global_end = min(self.chrom_sizes.sum(), global_end)
         return global_start, global_end
 
+    def _has_tileset(self, ct_or_name, track_type=None):
+        if ct_or_name in self.track_table.index:
+            return True
+        elif f"{ct_or_name} {track_type}" in self.track_table.index:
+            return True
+        else:
+            return False
+
     def get_ct_tileset(self, ct_or_name, track_type=None):
         """
         Get a cell type tileset
@@ -193,8 +202,11 @@ class HiglassBrowser:
             row = self.track_table.loc[ct_or_name]
             name = ct_or_name
         except KeyError:
-            row = self.track_table.loc[f"{ct_or_name} {track_type}"]
-            name = f"{ct_or_name} {track_type}"
+            try:
+                row = self.track_table.loc[f"{ct_or_name} {track_type}"]
+                name = f"{ct_or_name} {track_type}"
+            except KeyError:
+                raise KeyError(f"Cannot find {ct_or_name} {track_type} in track table")
 
         uuid = row["uuid"]
 
@@ -363,6 +375,7 @@ class HiglassBrowser:
 
         track_option_dict = self._default_track_options(track_option_dict)
 
+        _value_scale_lock_groups = defaultdict(list)  # key: modality, value: list of tracks
         for _ct, _m in groups:
             if _m == "Compartment Score":
                 _tt = "divergent-bar"
@@ -394,14 +407,25 @@ class HiglassBrowser:
 
             _t.options.update(track_option_dict)
             all_tracks[self.pos_1d].append(_t)
+            _value_scale_lock_groups[_m].append(_t)
 
         view = higlass.view(*((v, k) for k, vl in all_tracks.items() for v in vl), width=view_width)
         if region is not None:
             coords = self._region_to_global_coord(region, min_extend_length=5000)
             view.domain(x=coords, inplace=True)
 
+        viewconf = view.viewconf()
         viewconf_height = _get_view_height(view)
-        return view.viewconf(), viewconf_height
+
+        print(_value_scale_lock_groups)
+        # Lock value scale
+        locks = []
+        for modality, tracks in _value_scale_lock_groups.items():
+            _other_tracks = [(view, t) for t in tracks[1:]]
+            lock = higlass.lock((view, tracks[0]), *(_other_tracks))
+            locks.append(lock)
+        viewconf = viewconf.locks(*locks)
+        return viewconf, viewconf_height
 
     def two_cell_type_diff_viewconf(
         self,
@@ -609,7 +633,6 @@ class HiglassBrowser:
 
         view_dict = viewconf.dict()
         view_dict["trackSourceServers"] = [self.server, "https://higlass.io/api/v1"]
-        # view_dict["trackSourceServers"] = ["/api/v1", "https://higlass.io/api/v1"]
         for _v in view_dict["views"]:
             if self.toggle_position_search_box:
                 # toggle position search box, change is inplace

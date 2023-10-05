@@ -8,11 +8,11 @@ import re
 MAX_FIGURE_NUM = 8
 
 plot_examples = {
-    "Gene mCH": ("cemba_cell,continuous_scatter,l1_tsne,gene_mch:Gad1", "primary"),
-    "Gene mCG": ("cemba_cell,continuous_scatter,l1_tsne,gene_mcg:Gad1", "primary"),
-    "Gene RNA": ("cemba_cell,continuous_scatter,l1_tsne,gene_rna:Gad1", "primary"),
-    "Cell Subclass": ("cemba_cell,categorical_scatter,l1_tsne,CellSubClass", "success"),
-    "Dissection Region": ("cemba_cell,categorical_scatter,l1_tsne,DissectionRegion", "success"),
+    "Gene mCH": ("cemba_cell,continuous_scatter,mc_all_tsne,gene_mch:Gad1", "primary"),
+    "Gene mCG": ("cemba_cell,continuous_scatter,mc_all_tsne,gene_mcg:Gad1", "primary"),
+    "Gene RNA": ("cemba_cell,continuous_scatter,mc_all_tsne,gene_rna:Gad1", "primary"),
+    "Cell Subclass": ("cemba_cell,categorical_scatter,mc_all_tsne,CellSubClass", "success"),
+    "Dissection Region": ("cemba_cell,categorical_scatter,mc_all_tsne,DissectionRegion", "success"),
     "Cell Subclass MERFISH": ("cemba_cell,categorical_scatter,slice59_merfish,DissectionRegion", "success"),
     "Multi-2D Higlass": (
         "higlass,multi_cell_type_2d,cell_types=CA3 Glut+Sst Gaba,region1=chr1:11000000-12000000",

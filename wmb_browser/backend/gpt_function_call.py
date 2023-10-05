@@ -81,14 +81,14 @@ FUNCTIONS = [
                     "type": "string",
                     "description": (
                         "The coords name can be any one of these regex: "
-                        "'l1_(tsne|umap)', '\w+_mr_(tsne|umap)', 'slice\d+_merfish'. "
-                        "The 'l1_(tsne|umap)' stand for a global coords for the entire dataset; "
+                        "'mc_all_(tsne|umap)', '\w+_mr_(tsne|umap)', 'slice\d+_merfish'. "
+                        "The 'mc_all_(tsne|umap)' stand for a global coords for the entire dataset; "
                         "The '\w+_mr_(tsne|umap)' stand for major brain region coords, including these brain regions: "
                         f"({cemba_cell.get_metadata('MajorRegion').cat.categories.tolist()}); "
                         "the 'slice\d+_merfish' stand for MERFISH spatial coords for cornoal brain slices."
                     ),
                     "default": (
-                        "If no coords provided, use 'l1_tsne'; if not clear about which major region coords, "
+                        "If no coords provided, use 'mc_all_tsne'; if not clear about which major region coords, "
                         "use 'HPF_mr_tsne'; if not clear about which merfish MERFISH coords, use 'slice59_merfish'"
                     ),
                 },
