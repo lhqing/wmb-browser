@@ -417,7 +417,6 @@ class HiglassBrowser:
         viewconf = view.viewconf()
         viewconf_height = _get_view_height(view)
 
-        print(_value_scale_lock_groups)
         # Lock value scale
         locks = []
         for modality, tracks in _value_scale_lock_groups.items():
