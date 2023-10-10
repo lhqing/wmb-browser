@@ -1,5 +1,5 @@
 import dash_bootstrap_components as dbc
-from dash import dcc, html
+from dash import html
 
 INTRODUCTION_TEXT = (
     "Cytosine DNA methylation is essential in brain development and has been implicated in various neurological"
@@ -27,16 +27,10 @@ jumbotron = html.Div(
                 INTRODUCTION_TEXT,
             ),
             html.Hr(className="my-2"),
-            html.P("You can create a dynamic browser to explore the cellular and genomic data interactively. Alternatively, check out the examples below to see what you can do with the data."),
-            dbc.Row(
-                dbc.Textarea(
-                    value="Show me the mCH methylation level of Gad1 gene.", id="home-page-input", style={"height": 100}
-                ),
-                class_name="m-1",
-            ),
             dbc.Row(
                 [
-                    html.P(dbc.Button("Launch Browser", color="primary", className="m-2"), className="lead"),
+                    html.P(dbc.Button(html.A("Launch Button", href="https://mousebrain.salk.edu/dynamic_browser"), 
+                                      color="primary", className="m-2", id='home-launch-btn'), className="lead"),
                 ]
             ),
         ],
