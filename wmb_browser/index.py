@@ -23,6 +23,7 @@ def get_header():
                     dbc.NavItem(dbc.NavLink("Home", href=f"/{APP_ROOT_NAME}home")),
                     dbc.NavItem(dbc.NavLink("Browser", href=f"/{APP_ROOT_NAME}dynamic_browser")),
                     dbc.NavItem(dbc.NavLink("Download", href=f"/{APP_ROOT_NAME}download")),
+                    dbc.NavItem(dbc.NavLink("Blog", href="https://medium.com/@hanqingsalk/analyzing-the-whole-mouse-brain-atlas-on-the-cloud-with-skypilot-c423cffc00a8")),
                 ],
                 className="mr-5",
                 navbar=True,
