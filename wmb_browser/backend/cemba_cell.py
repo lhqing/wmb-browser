@@ -12,7 +12,6 @@ from .dataset import Dataset
 from .genome import mm10
 from .utilities import *
 
-
 CELL_META_CLIP_INFO = """
 **Cell ID**: {CellID} ({Technology})
 
@@ -107,8 +106,8 @@ class CEMBAsnmCCells(Dataset):
 
         card = dbc.Card(
             [
-                dbc.CardHeader(meta_dict['CellSubClass']),
-                dbc.CardBody([dcc.Markdown(CELL_META_CLIP_INFO.format(**meta_dict), className='small m-0')]),
+                dbc.CardHeader(meta_dict["CellSubClass"]),
+                dbc.CardBody([dcc.Markdown(CELL_META_CLIP_INFO.format(**meta_dict), className="small m-0")]),
             ],
             className="mt-3",
         )

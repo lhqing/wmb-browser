@@ -29,8 +29,15 @@ jumbotron = html.Div(
             html.Hr(className="my-2"),
             dbc.Row(
                 [
-                    html.P(dbc.Button(html.A("Launch Button", href="https://mousebrain.salk.edu/dynamic_browser"), 
-                                      color="primary", className="m-2", id='home-launch-btn'), className="lead"),
+                    html.P(
+                        dbc.Button(
+                            html.A("Launch Button", href="https://mousebrain.salk.edu/dynamic_browser"),
+                            color="primary",
+                            className="m-2",
+                            id="home-launch-btn",
+                        ),
+                        className="lead",
+                    ),
                 ]
             ),
         ],

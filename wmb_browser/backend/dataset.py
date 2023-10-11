@@ -64,13 +64,12 @@ class Dataset:
         if load:
             var_matrix.load()
 
-        var_matrix=var_matrix.rename({var_dim: "var"})
+        var_matrix = var_matrix.rename({var_dim: "var"})
         if obs_dim == self.obs_dim:
-            var_matrix=var_matrix.rename({obs_dim: "obs"})
+            var_matrix = var_matrix.rename({obs_dim: "obs"})
 
         self._var_matrices[name] = var_matrix
         return
-
 
     def add_metadata(self, metadata: pd.Series):
         """
@@ -168,7 +167,7 @@ class Dataset:
         except KeyError:
             raise KeyError(f"Variable '{var_name}' not found in feature set '{set_name}'.")
 
-        if _data.index.name not in {self.obs_dim, 'obs'}:
+        if _data.index.name not in {self.obs_dim, "obs"}:
             # map data to cell level
             _data = self.get_metadata(_data.index.name).map(_data)
         return _data

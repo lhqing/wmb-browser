@@ -1,9 +1,10 @@
-import dash_bootstrap_components as dbc
-from dash import html, dcc
-
 import pathlib
+
+import dash_bootstrap_components as dbc
+from dash import dcc, html
+
 print(pathlib.Path(__file__).parent.absolute())
-with open('wmb_browser/assets/download_content.md', 'r') as f:
+with open("wmb_browser/assets/download_content.md", "r") as f:
     md_text = f.read()
 
 jumbotron = html.Div(
