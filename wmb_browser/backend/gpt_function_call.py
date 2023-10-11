@@ -1,7 +1,8 @@
 import json
-from typing import List, Tuple
+from typing import Tuple
 
 import openai
+
 from wmb_browser.backend.cemba_cell import cemba_cell
 
 categorical_variables = [

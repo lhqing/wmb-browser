@@ -4,9 +4,10 @@ from _app import APP_ROOT_NAME, app, server
 from dash import callback, dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from wmb_browser.apps.home import home_layout
+
 from wmb_browser.apps.download import download_layout
 from wmb_browser.apps.dynamic_browser import create_dynamic_browser_layout
+from wmb_browser.apps.home import home_layout
 
 LOGO_IMG_URL = (
     "https://raw.githubusercontent.com/lhqing/wmb-browser/master/"
@@ -23,6 +24,12 @@ def get_header():
                     dbc.NavItem(dbc.NavLink("Home", href=f"/{APP_ROOT_NAME}home")),
                     dbc.NavItem(dbc.NavLink("Browser", href=f"/{APP_ROOT_NAME}dynamic_browser")),
                     dbc.NavItem(dbc.NavLink("Download", href=f"/{APP_ROOT_NAME}download")),
+                    dbc.NavItem(
+                        dbc.NavLink(
+                            "Blog",
+                            href="https://medium.com/@hanqingsalk/analyzing-the-whole-mouse-brain-atlas-on-the-cloud-with-skypilot-c423cffc00a8",
+                        )
+                    ),
                 ],
                 className="mr-5",
                 navbar=True,

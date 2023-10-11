@@ -1,9 +1,12 @@
-import dash_bootstrap_components as dbc
-from dash import MATCH, Input, Output, Patch, State, callback, html, callback_context, ALL, dcc
-from dash.exceptions import PreventUpdate
 import base64
-from wmb_browser.backend import *
 import re
+
+import dash_bootstrap_components as dbc
+from dash import (ALL, MATCH, Input, Output, Patch, State, callback,
+                  callback_context, dcc, html)
+from dash.exceptions import PreventUpdate
+
+from wmb_browser.backend import *
 
 MAX_FIGURE_NUM = 8
 
@@ -214,7 +217,8 @@ layout_gpt_example_btns = dbc.Row(
 gpt_tips_and_warnings = dbc.Row(
     [
         dbc.Alert(
-             "Tips: You can click above buttons to get a sense of what you can ask ChatGPT to do. Only talk about one panel at each line, be sure to say its a 'scatter plot' or a 'higlass browser'.",
+            "Tips: You can click above buttons to get a sense of what you can ask ChatGPT to do. Only talk about one"
+            " panel at each line, be sure to say its a 'scatter plot' or a 'higlass browser'.",
             className="m-2",
             dismissable=True,
             color="info",
@@ -288,7 +292,6 @@ input_card = dbc.Card(
 
 
 def _string_to_args_and_kwargs(string):
-
     # convert "%20" to " " using regex
     print(string)
     string = re.sub(r"%20", " ", string)
