@@ -14,6 +14,8 @@ LOGO_IMG_URL = (
     "wmb_browser/assets/dissection_region_img/navbar_icon.gif"
 )
 
+TUTORIAL_URL = "https://docs.google.com/document/d/11wUCcsdObf3XcRx3CwNBHGmfnqeSyT_wn0_c503Vxsk/edit?usp=sharing"
+
 
 def get_header():
     """Add header to the app."""
@@ -26,8 +28,8 @@ def get_header():
                     dbc.NavItem(dbc.NavLink("Download", href=f"/{APP_ROOT_NAME}download")),
                     dbc.NavItem(
                         dbc.NavLink(
-                            "Blog",
-                            href="https://medium.com/@hanqingsalk/analyzing-the-whole-mouse-brain-atlas-on-the-cloud-with-skypilot-c423cffc00a8",
+                            "Tutorial",
+                            href=TUTORIAL_URL,
                         )
                     ),
                 ],
