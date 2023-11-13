@@ -27,19 +27,17 @@ jumbotron = html.Div(
                 INTRODUCTION_TEXT,
             ),
             html.Hr(className="my-2"),
-            dbc.Row(
-                [
-                    html.P(
-                        dbc.Button(
-                            html.A("Launch Button", href="https://mousebrain.salk.edu/dynamic_browser"),
-                            color="primary",
-                            className="m-2",
-                            id="home-launch-btn",
-                        ),
-                        className="lead",
+            dbc.Row([
+                html.P(
+                    dbc.Button(
+                        html.A("Launch Button", href="https://mousebrain.salk.edu/dynamic_browser"),
+                        color="primary",
+                        className="m-2",
+                        id="home-launch-btn",
                     ),
-                ]
-            ),
+                    className="lead",
+                ),
+            ]),
         ],
         fluid=True,
         className="py-3",
@@ -47,8 +45,6 @@ jumbotron = html.Div(
     className="p-3 bg-light rounded-3",
 )
 
-home_layout = html.Div(
-    [
-        jumbotron,
-    ]
-)
+home_layout = html.Div([
+    jumbotron,
+])
