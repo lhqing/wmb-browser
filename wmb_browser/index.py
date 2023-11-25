@@ -38,7 +38,7 @@ def get_header():
                 style={"font-size": "1.4em"},
             )
         ],
-        className="ml-2 flex-nowrap mt-3 mt-md-0",
+        className="ml-2 mt-3 mt-md-0",
         align="center",
     )
 
