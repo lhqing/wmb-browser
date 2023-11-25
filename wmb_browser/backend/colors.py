@@ -1,4 +1,5 @@
 """Centralized color definitions for the application."""
+
 import joblib
 
 _palette_alias = {
