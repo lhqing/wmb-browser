@@ -1,4 +1,5 @@
 """Main app entry point and routing control."""
+
 import dash_bootstrap_components as dbc
 from _app import APP_ROOT_NAME, app, server
 from dash import callback, dcc, html
@@ -61,17 +62,15 @@ def get_header():
 # all orders matters here
 type(server)
 
-app.layout = html.Div(
-    [
-        dcc.Location(id="url", refresh=False),
-        get_header(),  # nav bar
-        html.Div(
-            id="page-content",
-            # Global style of all APPs
-            className="page-content",
-        ),
-    ]
-)
+app.layout = html.Div([
+    dcc.Location(id="url", refresh=False),
+    get_header(),  # nav bar
+    html.Div(
+        id="page-content",
+        # Global style of all APPs
+        className="page-content",
+    ),
+])
 
 
 @callback(
