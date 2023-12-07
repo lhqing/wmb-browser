@@ -12,7 +12,7 @@ jumbotron = html.Div(
         [
             html.H1("Download Data", className="display-4"),
             html.Hr(className="my-2"),
-            dcc.Markdown(md_text, dangerously_allow_html=True),
+            dcc.Markdown(md_text),
         ],
         fluid=True,
         className="py-3",
