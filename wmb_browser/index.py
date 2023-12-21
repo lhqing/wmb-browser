@@ -58,6 +58,18 @@ def get_header():
     )
     return navbar
 
+def get_footer():
+    """Add footer to the app."""
+    footer = dbc.Row(
+        dbc.Col(
+            html.P("<Powered by SkyPilot>", className="text-center", style={"color": "grey", "font-size": "0.8em"}),
+            width={"size": 6, "offset": 3},
+        ),
+        align="center",
+        className="fixed-bottom mb-2 p-2",
+    )
+    return footer
+
 
 # make sure IDE do not remove the import line...
 # because server need to be imported by wsgi.py from index.py
@@ -72,6 +84,7 @@ app.layout = html.Div([
         # Global style of all APPs
         className="page-content",
     ),
+    get_footer(),  # footer
 ])
 
 
