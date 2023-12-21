@@ -67,7 +67,7 @@ def get_footer():
                 "<Powered by SkyPilot>",
                 href="https://github.com/skypilot-org/skypilot",
                 target="_blank",  
-                style={"color": "grey", "font-size": "0.8em"}),
+                style={"color": "grey"}),
             ),
             className="text-center",
             width={"size": 6, "offset": 3},
