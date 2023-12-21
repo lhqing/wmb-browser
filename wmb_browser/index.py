@@ -58,16 +58,18 @@ def get_header():
     )
     return navbar
 
+
 def get_footer():
     """Add footer to the app."""
     footer = dbc.Row(
         dbc.Col(
             html.P(
                 html.A(
-                "<Powered by SkyPilot>",
-                href="https://github.com/skypilot-org/skypilot",
-                target="_blank",  
-                style={"color": "grey"}),
+                    "<Powered by SkyPilot>",
+                    href="https://github.com/skypilot-org/skypilot",
+                    target="_blank",
+                    style={"color": "grey"},
+                ),
             ),
             className="text-center",
             width={"size": 6, "offset": 3},
