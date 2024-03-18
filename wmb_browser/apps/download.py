@@ -20,6 +20,8 @@ jumbotron = html.Div(
     className="p-3 bg-light rounded-3",
 )
 
-download_layout = html.Div([
-    jumbotron,
-])
+download_layout = html.Div(
+    [
+        jumbotron,
+    ]
+)
