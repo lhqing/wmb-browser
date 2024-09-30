@@ -30,7 +30,7 @@ file_mounts:
     mode: MOUNT
 
 setup: |
-  which jupyter
+  which mamba
   if [ $? -eq 0 ]
   then
     echo "Skip setup"
@@ -60,9 +60,6 @@ setup: |
     sudo docker exec higlass-container rm -rf /data/media
     sudo docker exec higlass-container ln -s /browser /data/media
 
-    # ingest data to higlass with the ingest notebook
-    # jupyter nbconvert --to notebook --execute /cemba/higlass/notebooks/ingest_higlass.ipynb
-
     # setup jupyter
     mamba install -y jupyterlab
 
@@ -76,3 +73,5 @@ setup: |
 run: |
   sudo docker start higlass-container
   nohup jupyter-lab --LabApp.token='' --no-browser --port 3344 > ~/jupyter.log 2>&1 &
+
+  # see setup_nginx.md for nginx setup
