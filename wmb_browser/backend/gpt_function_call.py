@@ -66,6 +66,7 @@ alias = {
     "mCGFrac": "mCG Frac",
     "DomainBoundaryProba": "Domain Boundary",
     "CompartmentScore": "Compartment Score",
+    "CellSubClass": "CellSubClass",
 }
 
 # make alias key case insensitive
