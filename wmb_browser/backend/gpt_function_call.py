@@ -187,7 +187,7 @@ def parse_user_input(user_input: str) -> Tuple[str, str, dict]:
     response_message = response.choices[0].message
 
     # Step 2: check if GPT wanted to call a function
-    if response_message.get("function_call"):
+    if response_message.function_call:
         # Step 3: call the function
         # Note: the JSON response may not always be valid; be sure to handle errors
         # function_name = response_message["function_call"]["name"]
