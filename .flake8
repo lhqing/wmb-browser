@@ -48,7 +48,7 @@ ignore =
     D400
     # No whitespaces allowed surrounding docstring text
     D210
-
+    W605
     B904
     S101
     B019

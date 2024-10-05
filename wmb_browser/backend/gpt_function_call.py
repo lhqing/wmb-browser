@@ -1,9 +1,11 @@
 import json
 from typing import Tuple
 
-import openai
+from openai import OpenAI
 
 from wmb_browser.backend.cemba_cell import cemba_cell
+
+client = OpenAI()
 
 categorical_variables = [
     "CCFRegionAcronym",
@@ -178,14 +180,11 @@ def parse_user_input(user_input: str) -> Tuple[str, str, dict]:
     """Parse user input and return dataset, plot_type, and kwargs."""
     messages = [{"role": "user", "content": user_input}]
     functions = FUNCTIONS
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-0613",
-        messages=messages,
-        functions=functions,
-        function_call="auto",  # auto is default, but we'll be explicit
+    response = client.chat.completions.create(
+        model="gpt-4o-mini-2024-07-18", messages=messages, functions=functions, function_call="auto"
     )
 
-    response_message = response["choices"][0]["message"]
+    response_message = response.choices[0].message
 
     # Step 2: check if GPT wanted to call a function
     if response_message.get("function_call"):
@@ -225,6 +224,7 @@ def _alias_to_real_value(func_args):
 
 
 def gpt_response_to_function_call(func_name, func_args, gpt_response):
+    """Convert GPT response to function call."""
     if func_name is None:
         print(gpt_response)
         raise ValueError("GPT failed to all functions")
@@ -296,6 +296,7 @@ def gpt_response_to_function_call(func_name, func_args, gpt_response):
 
 
 def chatgpt_string_to_args_and_kwargs(string):
+    """Convert chatgpt string to args and kwargs."""
     func_name, func_args, gpt_response = parse_user_input(string)
     dataset, plot_type, kwargs = gpt_response_to_function_call(func_name, func_args, gpt_response)
     return dataset, plot_type, [], kwargs
