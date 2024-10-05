@@ -176,8 +176,8 @@ FUNCTIONS = [
 ]
 
 
-def parse_user_input(user_input: str) -> Tuple[str, str, dict]:
-    """Parse user input and return dataset, plot_type, and kwargs."""
+def parse_user_input(user_input: str) -> Tuple[str, dict, object]:
+    """Parse user input and return function_name, function_args, and full response."""
     messages = [{"role": "user", "content": user_input}]
     functions = FUNCTIONS
     response = client.chat.completions.create(
@@ -186,16 +186,13 @@ def parse_user_input(user_input: str) -> Tuple[str, str, dict]:
 
     response_message = response.choices[0].message
 
-    # Step 2: check if GPT wanted to call a function
+    # Check if a function call was made
     if response_message.function_call:
-        # Step 3: call the function
-        # Note: the JSON response may not always be valid; be sure to handle errors
-        # function_name = response_message["function_call"]["name"]
         try:
-            _func_call = response_message["function_call"]
-            function_name = _func_call["name"]
-            function_args = json.loads(_func_call["arguments"])
-        except (json.JSONDecodeError, KeyError):
+            # Access function call details using dot notation
+            function_name = response_message.function_call.name
+            function_args = json.loads(response_message.function_call.arguments)
+        except (json.JSONDecodeError, AttributeError):
             function_args = None
             function_name = None
         return function_name, function_args, response
