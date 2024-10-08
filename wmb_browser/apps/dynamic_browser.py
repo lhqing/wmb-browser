@@ -214,75 +214,81 @@ layout_gpt_example_btns = dbc.Row(
         ]
     ),
 )
-gpt_tips_and_warnings = dbc.Row([
-    dbc.Alert(
-        "Tips: You can click above buttons to get a sense of what you can ask ChatGPT to do. Only talk about one"
-        " panel at each line, be sure to say its a 'scatter plot' or a 'higlass browser'.",
-        className="m-2",
-        dismissable=True,
-        color="info",
-        style={"width": "90%"},
-    ),
-    dbc.Alert(
-        [
-            "The ChatGPT model cost additional money to run (see ",
-            html.A("Pricing", href="https://openai.com/pricing", target="_blank"),
-            "). Please be mindful when using it, thank you and enjoy!",
-        ],
-        className="m-2",
-        dismissable=True,
-        color="warning",
-        style={"width": "90%"},
-    ),
-])
+gpt_tips_and_warnings = dbc.Row(
+    [
+        dbc.Alert(
+            "Tips: You can click above buttons to get a sense of what you can ask ChatGPT to do. Only talk about one"
+            " panel at each line, be sure to say its a 'scatter plot' or a 'higlass browser'.",
+            className="m-2",
+            dismissable=True,
+            color="info",
+            style={"width": "90%"},
+        ),
+        dbc.Alert(
+            [
+                "The ChatGPT model cost additional money to run (see ",
+                html.A("Pricing", href="https://openai.com/pricing", target="_blank"),
+                "). Please be mindful when using it, thank you and enjoy!",
+            ],
+            className="m-2",
+            dismissable=True,
+            color="warning",
+            style={"width": "90%"},
+        ),
+    ]
+)
 
 # master input card
-input_card = dbc.Card([
-    dbc.CardHeader("Create your browser layout"),
-    dbc.CardBody(
-        [
-            dbc.Row([
-                dbc.Col(
-                    layout_buttons,
-                    xxl=3,
-                    xl=3,
-                    lg=5,
-                    md=5,
-                    sm=12,
-                ),
-                dbc.Col(
+input_card = dbc.Card(
+    [
+        dbc.CardHeader("Create your browser layout"),
+        dbc.CardBody(
+            [
+                dbc.Row(
                     [
-                        layout_inputs,
-                        layout_example_btns,
-                        dbc.Row(
-                            dbc.Collapse(
-                                [layout_gpt_example_btns, gpt_tips_and_warnings],
-                                id="gpt_example_collapse",
-                                is_open=False,
-                            )
+                        dbc.Col(
+                            layout_buttons,
+                            xxl=3,
+                            xl=3,
+                            lg=5,
+                            md=5,
+                            sm=12,
                         ),
-                    ],
-                    xxl=9,
-                    xl=9,
-                    lg=7,
-                    md=7,
-                    sm=12,
+                        dbc.Col(
+                            [
+                                layout_inputs,
+                                layout_example_btns,
+                                dbc.Row(
+                                    dbc.Collapse(
+                                        [layout_gpt_example_btns, gpt_tips_and_warnings],
+                                        id="gpt_example_collapse",
+                                        is_open=False,
+                                    )
+                                ),
+                            ],
+                            xxl=9,
+                            xl=9,
+                            lg=7,
+                            md=7,
+                            sm=12,
+                        ),
+                    ]
                 ),
-            ]),
-            dbc.Offcanvas(
-                [
-                    html.P("These are the most recent cells you clicked on the scatter plots."),
-                    dcc.Store(id="cell-clipboard-count", data=[], storage_type="memory"),
-                    dbc.Row(id="cell-clipboard-content", children=[]),
-                ],
-                id="offcanvas",
-                title="Cell Metadata Clipboard",
-                style={"width": "40%"},
-                is_open=False,
-            ),
-        ],
-    ),
-])
+                dbc.Offcanvas(
+                    [
+                        html.P("These are the most recent cells you clicked on the scatter plots."),
+                        dcc.Store(id="cell-clipboard-count", data=[], storage_type="memory"),
+                        dbc.Row(id="cell-clipboard-content", children=[]),
+                    ],
+                    id="offcanvas",
+                    title="Cell Metadata Clipboard",
+                    style={"width": "40%"},
+                    is_open=False,
+                ),
+            ],
+        ),
+    ]
+)
 
 
 def _string_to_args_and_kwargs(string):
@@ -461,10 +467,12 @@ def _new_figure_item(i, string, use_gpt=False):
 
     plot_title = plot_type.replace("_", " ").capitalize()
     tabs = dbc.Col(
-        dbc.Tabs([
-            dbc.Tab(graph, label=plot_title),
-            dbc.Tab(graph_controls, label="Control"),
-        ]),
+        dbc.Tabs(
+            [
+                dbc.Tab(graph, label=plot_title),
+                dbc.Tab(graph_controls, label="Control"),
+            ]
+        ),
         width=width,
         xl=xl,
         lg=lg,
@@ -852,10 +860,12 @@ def create_dynamic_browser_layout(search: str):
         )
     )
 
-    layout = html.Div([
-        html.Div(id="input-div", children=[input_card] + [too_many_fig_alert]),
-        html.Div(id="figure-div", children=fig_list, className="row"),
-        dcc.Store(id="layout-config", data=layout_config, storage_type="memory"),
-        dcc.Download(id="download-layout-config"),
-    ])
+    layout = html.Div(
+        [
+            html.Div(id="input-div", children=[input_card] + [too_many_fig_alert]),
+            html.Div(id="figure-div", children=fig_list, className="row"),
+            dcc.Store(id="layout-config", data=layout_config, storage_type="memory"),
+            dcc.Download(id="download-layout-config"),
+        ]
+    )
     return layout
