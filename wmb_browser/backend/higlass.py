@@ -486,12 +486,14 @@ class HiglassBrowser:
 
             t3 = higlass.divide(t1, t2).opts(valueScaleMin=0.1, valueScaleMax=10)
             t3.type = "divergent-bar"
-            t3.options.update({
-                "valueScaling": "log",
-                "name": f"{_m} (left / right) - log scale",
-                "barFillColorTop": "red",
-                "barFillColorBottom": "blue",
-            })
+            t3.options.update(
+                {
+                    "valueScaling": "log",
+                    "name": f"{_m} (left / right) - log scale",
+                    "barFillColorTop": "red",
+                    "barFillColorBottom": "blue",
+                }
+            )
             track_3_list.append((t3, self.pos_1d))
 
         # views
