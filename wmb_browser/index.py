@@ -85,16 +85,18 @@ def get_footer():
 # all orders matters here
 type(server)
 
-app.layout = html.Div([
-    dcc.Location(id="url", refresh=False),
-    get_header(),  # nav bar
-    html.Div(
-        id="page-content",
-        # Global style of all APPs
-        className="page-content",
-    ),
-    get_footer(),  # footer
-])
+app.layout = html.Div(
+    [
+        dcc.Location(id="url", refresh=False),
+        get_header(),  # nav bar
+        html.Div(
+            id="page-content",
+            # Global style of all APPs
+            className="page-content",
+        ),
+        get_footer(),  # footer
+    ]
+)
 
 
 @callback(
